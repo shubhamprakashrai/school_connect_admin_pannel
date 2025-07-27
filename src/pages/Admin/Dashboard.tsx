@@ -1,6 +1,16 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Debugging wrapper component
+const DebugWrapper = ({ children, name }: { children: React.ReactNode; name: string }) => {
+  useEffect(() => {
+    console.log(`[${name}] Mounted`);
+    return () => console.log(`[${name}] Unmounted`);
+  }, [name]);
+  
+  return <>{children}</>;
+};
 import { 
   LayoutDashboard, Users, FileText, ChevronDown, 
   X, LogOut, GraduationCap, Users2, BookType,
@@ -39,54 +49,76 @@ type RecentActivity = {
   avatar: string;
 };
 
-const AdminDashboard = () => {
+interface AdminDashboardProps {
+  onLogout: () => void;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+  console.log('AdminDashboard rendering...');
+  const navigate = useNavigate();
+  
+  // Debug effect to check props and state
+  useEffect(() => {
+    console.log('AdminDashboard mounted with props:', { onLogout });
+    
+    // Check if we have the required data
+    if (!onLogout) {
+      console.error('onLogout prop is missing!');
+    }
+    
+    return () => {
+      console.log('AdminDashboard unmounting...');
+    };
+  }, [onLogout]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
-  const location = useLocation();
 
   // Sample data
   const stats: StatCard[] = [
     { 
       name: 'Total Students', 
-      value: '2,450', 
-      icon: <GraduationCap className="h-6 w-6 text-blue-500" />,
-      change: '+5.2%',
+      value: '1,245', 
+      icon: <Users className="h-6 w-6 text-blue-500" />,
+      change: '+12%',
       changeType: 'positive',
-      color: 'text-blue-500'
+      color: 'blue'
     },
     { 
-      name: 'Total Teachers', 
-      value: '124', 
-      icon: <Users2 className="h-6 w-6 text-green-500" />,
-      change: '+2.1%',
+      name: 'Active Teachers', 
+      value: '84', 
+      icon: <GraduationCap className="h-6 w-6 text-green-500" />,
+      change: '+5%',
       changeType: 'positive',
-      color: 'text-green-500'
+      color: 'green'
     },
     { 
-      name: 'Active Classes', 
-      value: '36', 
-      icon: <BookType className="h-6 w-6 text-purple-500" />,
-      change: '0%',
-      changeType: 'neutral',
-      color: 'text-purple-500'
+      name: 'Active Schools', 
+      value: '24', 
+      icon: <Users2 className="h-6 w-6 text-purple-500" />,
+      change: '+2',
+      changeType: 'positive',
+      color: 'purple'
     },
     { 
-      name: 'Upcoming Events', 
-      value: '8', 
-      icon: <CalendarDays className="h-6 w-6 text-orange-500" />,
+      name: 'Pending Approvals', 
+      value: '12', 
+      icon: <FileText className="h-6 w-6 text-yellow-500" />,
       change: '+3',
       changeType: 'negative',
-      color: 'text-orange-500'
-    },
+      color: 'yellow'
+    }
   ];
-
+  
   const upcomingEvents: Event[] = [
-    { id: 1, title: 'Parent-Teacher Meeting', date: '2023-11-15', type: 'event' },
-    { id: 2, title: 'Mid-Term Exams', date: '2023-11-20', type: 'exam' },
-    { id: 3, title: 'Sports Day', date: '2023-11-25', type: 'event' },
+    { id: 1, title: 'Staff Meeting', date: '2023-06-15', type: 'event' },
+    { id: 2, title: 'End of Term', date: '2023-06-30', type: 'holiday' },
+    { id: 3, title: 'Final Exams', date: '2023-06-25', type: 'exam' },
   ];
-
+  
   const recentActivities: RecentActivity[] = [
+    { id: 1, user: 'John Doe', action: 'added a new student', time: '2 hours ago', avatar: 'JD' },
+    { id: 2, user: 'Jane Smith', action: 'updated class schedule', time: '5 hours ago', avatar: 'JS' },
+    { id: 3, user: 'Admin', action: 'approved school registration', time: '1 day ago', avatar: 'A' },
     { id: 1, user: 'John Doe', action: 'added a new student', time: '10 mins ago', avatar: 'JD' },
     { id: 2, user: 'Sarah Smith', action: 'updated class schedule', time: '25 mins ago', avatar: 'SS' },
     { id: 3, user: 'Mike Johnson', action: 'uploaded exam results', time: '1 hour ago', avatar: 'MJ' },
@@ -186,11 +218,11 @@ const AdminDashboard = () => {
 
   // Handle logout
   const handleLogout = () => {
-    // Add your logout logic here
+    onLogout();
   };
 
-  // Helper function to get event type icon
-  const getEventIcon = (type: string) => {
+  // Get appropriate icon for event type
+  const getEventIcon = (type: Event['type']) => {
     switch (type) {
       case 'event':
         return <CalendarDays className="h-4 w-4 text-blue-500" />;
@@ -203,8 +235,10 @@ const AdminDashboard = () => {
     }
   };
 
-  return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+  try {
+    return (
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <DebugWrapper name="AdminDashboard">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -392,10 +426,103 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+
+          {/* Upcoming Events and Recent Activities */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Upcoming Events */}
+            <div className="overflow-hidden rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-4 py-5 sm:px-6">
+                <h3 className="text-lg font-medium leading-6 text-gray-900">Upcoming Events</h3>
+              </div>
+              <div className="px-4 py-5 sm:p-6">
+                <ul className="divide-y divide-gray-200">
+                  {upcomingEvents.map((event) => (
+                    <li key={event.id} className="py-3">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          {getEventIcon(event.type)}
+                        </div>
+                        <div className="ml-3 w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900">{event.title}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(event.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Recent Activities */}
+            <div className="overflow-hidden rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-4 py-5 sm:px-6">
+                <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Activities</h3>
+              </div>
+              <div className="px-4 py-5 sm:p-6">
+                <ul className="divide-y divide-gray-200">
+                  {recentActivities.map((activity) => (
+                    <li key={activity.id} className="py-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                            {activity.avatar}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {activity.user}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {activity.action}
+                          </p>
+                        </div>
+                        <div className="text-sm text-gray-500 whitespace-nowrap">
+                          {activity.time}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
-    </div>
-  );
+        </DebugWrapper>
+      </div>
+    );
+  } catch (error) {
+    console.error('Error rendering AdminDashboard:', error);
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Dashboard Error</h2>
+          <p className="text-gray-700 mb-4">An error occurred while rendering the dashboard.</p>
+          <p className="text-sm text-gray-600 mb-6">Error details: {error instanceof Error ? error.message : 'Unknown error'}</p>
+          <div className="flex space-x-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default AdminDashboard;

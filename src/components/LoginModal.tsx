@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, Lock, Mail, User, Users } from 'lucide-react';
+
+type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (role: UserRole) => void;
 }
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
@@ -31,9 +33,23 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
     setIsLoading(true);
     
     try {
-      // TODO: Replace with actual API call
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      onLoginSuccess();
+      
+      // Simple demo logic - in a real app, this would come from the auth response
+      const email = formData.email.toLowerCase();
+      let role: UserRole = 'student'; // Default to student
+      
+      if (email.includes('admin')) {
+        role = 'admin';
+      } else if (email.includes('teacher')) {
+        role = 'teacher';
+      } else if (email.includes('parent')) {
+        role = 'parent';
+      }
+      // else default to 'student'
+      
+      onLoginSuccess(role);
     } catch (err) {
       setError('Invalid credentials. Please try again.');
     } finally {
@@ -61,8 +77,16 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         </button>
 
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+            <User className="h-8 w-8 text-blue-600" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Sign in to your EduSmart360 account</p>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+            <p>Demo accounts:</p>
+            <p className="font-mono text-xs mt-1">admin@school.edu / teacher@school.edu</p>
+            <p className="font-mono text-xs">parent@school.edu / student@school.edu</p>
+          </div>
         </div>
 
         {error && (
