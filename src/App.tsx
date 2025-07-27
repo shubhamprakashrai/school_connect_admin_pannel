@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { DemoProvider } from './contexts/DemoContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -15,13 +15,22 @@ import Footer from './components/Footer';
 import LoginModal from './components/LoginModal';
 import Dashboard from './pages/Admin/Dashboard';
 
+// Props for MainApp component
+interface MainAppProps {
+  onLoginSuccess: () => void;
+  isAuthenticated: boolean;
+}
+
 // Main App Layout
-const MainApp = () => {
+const MainApp: React.FC<MainAppProps> = ({ onLoginSuccess, isAuthenticated }) => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   
   return (
     <div className="min-h-screen bg-white font-inter">
-      <Header onLoginClick={() => setIsLoginModalOpen(true)} isLoginModalOpen={isLoginModalOpen} onCloseLoginModal={() => setIsLoginModalOpen(false)} />
+      <Header 
+        onLoginClick={() => setIsLoginModalOpen(true)}
+        isAuthenticated={isAuthenticated}
+      />
       <main>
         <Hero />
         <Features />
@@ -39,39 +48,59 @@ const MainApp = () => {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={() => {
           setIsLoginModalOpen(false);
-          // Redirect to admin dashboard on successful login
-          window.location.href = '/admin/dashboard';
+          onLoginSuccess();
         }}
       />
     </div>
   );
 };
 
-function App() {
+// Wrapper component to handle authentication state and navigation
+const AppContent = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
+  // Function to handle successful login
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    navigate('/admin/dashboard');
+  };
+
+  return (
+    <>
+      <Routes>
+        {/* Main App Routes */}
+        <Route path="/" element={
+          <MainApp 
+            onLoginSuccess={handleLoginSuccess}
+            isAuthenticated={isAuthenticated}
+          />
+        } />
+        
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            isAuthenticated ? (
+              <Dashboard />
+            ) : (
+              <Navigate to="/" state={{ from: '/admin/dashboard' }} replace />
+            )
+          } 
+        />
+        
+        {/* 404 Route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
   return (
     <DemoProvider>
       <Router>
-        <Routes>
-          {/* Main App Routes */}
-          <Route path="/" element={<MainApp />} />
-          
-          {/* Admin Routes */}
-          <Route 
-            path="/admin/*" 
-            element={
-              isAuthenticated ? (
-                <Dashboard />
-              ) : (
-                <Navigate to="/" state={{ from: '/admin' }} replace />
-              )
-            } 
-          />
-          
-          {/* 404 Route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AppContent />
       </Router>
     </DemoProvider>
   );

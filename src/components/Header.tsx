@@ -6,8 +6,7 @@ import RequestDemoModal from './RequestDemoModal';
 
 interface HeaderProps {
   onLoginClick: () => void;
-  isLoginModalOpen: boolean;
-  onCloseLoginModal: () => void;
+  isAuthenticated: boolean;
 }
 
 // Animation variants for mobile menu
@@ -31,8 +30,6 @@ const mobileMenuVariants: Variants = {
   }
 };
 
-import type { Variants } from 'framer-motion';
-
 const navItemVariants: Variants = {
   hover: { 
     y: -2,
@@ -41,7 +38,7 @@ const navItemVariants: Variants = {
   initial: { y: 0 }
 };
 
-const Header: React.FC<HeaderProps> = ({ onLoginClick, isLoginModalOpen, onCloseLoginModal }) => {
+const Header: React.FC<HeaderProps> = ({ onLoginClick, isAuthenticated }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -156,12 +153,21 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, isLoginModalOpen, onClose
             ))}
             
             <div className="ml-4 flex items-center space-x-3">
-              <a 
-                href="#login" 
-                className="px-5 py-2.5 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
-              >
-                Log in
-              </a>
+              {isAuthenticated ? (
+                <a 
+                  href="/admin/dashboard"
+                  className="px-5 py-2.5 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                >
+                  Dashboard
+                </a>
+              ) : (
+                <button 
+                  onClick={onLoginClick}
+                  className="px-5 py-2.5 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                >
+                  Log in
+                </button>
+              )}
               <motion.button 
                 onClick={() => setShowModal(true)}
                 className="relative px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 overflow-hidden group"
@@ -246,13 +252,25 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, isLoginModalOpen, onClose
                 ))}
                 
                 <div className="px-6 pt-4 space-y-3">
-                  <a 
-                    href="#login" 
-                    className="block w-full text-center px-6 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Log in
-                  </a>
+                  {isAuthenticated ? (
+                    <a 
+                      href="/admin/dashboard"
+                      className="block w-full text-center px-6 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Dashboard
+                    </a>
+                  ) : (
+                    <button 
+                      className="w-full text-center px-6 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onLoginClick();
+                      }}
+                    >
+                      Log in
+                    </button>
+                  )}
                   <motion.button 
                     onClick={() => {
                       setIsMenuOpen(false);
