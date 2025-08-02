@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, School, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, School, Users, Settings, LogOut, GraduationCap } from 'lucide-react';
 
 interface DrawerProps {
   isOpen: boolean;
@@ -10,7 +10,8 @@ interface DrawerProps {
 
 const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
   const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({
-    schools: true
+    schools: true,
+    students: true
   });
 
   const toggleItem = (key: string) => {
@@ -40,6 +41,21 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { 
           label: 'View Schools', 
           path: '/dashboard/schools' 
+        }
+      ]
+    },
+    { 
+      key: 'students',
+      icon: <GraduationCap className="w-5 h-5" />, 
+      label: 'Students',
+      children: [
+        { 
+          label: 'Add Student', 
+          path: '/dashboard/students/add' 
+        },
+        { 
+          label: 'View Students', 
+          path: '/dashboard/students' 
         }
       ]
     },

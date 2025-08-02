@@ -182,8 +182,7 @@ const SchoolList: React.FC = () => {
           variant="contained" 
           color="primary" 
           startIcon={<AddIcon />}
-          onClick={() => navigate('/super-admin/schools/add')}
-        >
+          onClick={() => navigate('/dashboard/schools/add', { replace: true })}>
           Add New School
         </Button>
       </Box>
@@ -422,7 +421,7 @@ const SchoolList: React.FC = () => {
       </Menu>
 
       {/* Floating Action Button */}
-      <Fab
+      {/* <Fab
         color="primary"
         aria-label="add school"
         sx={{
@@ -433,7 +432,7 @@ const SchoolList: React.FC = () => {
         onClick={() => navigate('/super-admin/schools/add')}
       >
         <AddIcon />
-      </Fab>
+      </Fab> */}
     </Box>
   );
 };
