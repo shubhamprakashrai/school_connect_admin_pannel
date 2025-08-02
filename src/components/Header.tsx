@@ -7,6 +7,7 @@ import RequestDemoModal from './RequestDemoModal';
 interface HeaderProps {
   onLoginClick: () => void;
   isAuthenticated: boolean;
+  onLogout: () => void;
 }
 
 // Animation variants for mobile menu
@@ -38,7 +39,7 @@ const navItemVariants: Variants = {
   initial: { y: 0 }
 };
 
-const Header: React.FC<HeaderProps> = ({ onLoginClick, isAuthenticated }) => {
+const Header: React.FC<HeaderProps> = ({ onLoginClick, isAuthenticated, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -154,18 +155,18 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, isAuthenticated }) => {
             
             <div className="ml-4 flex items-center space-x-3">
               {isAuthenticated ? (
-                <a 
-                  href="/admin/dashboard"
-                  className="px-5 py-2.5 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                <button
+                  onClick={onLogout}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                 >
-                  Dashboard
-                </a>
+                  Logout
+                </button>
               ) : (
-                <button 
+                <button
                   onClick={onLoginClick}
-                  className="px-5 py-2.5 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Log in
+                  Login
                 </button>
               )}
               <motion.button 
@@ -253,13 +254,15 @@ const Header: React.FC<HeaderProps> = ({ onLoginClick, isAuthenticated }) => {
                 
                 <div className="px-6 pt-4 space-y-3">
                   {isAuthenticated ? (
-                    <a 
-                      href="/admin/dashboard"
-                      className="block w-full text-center px-6 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
+                    <button 
+                      onClick={() => {
+                        onLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-center px-6 py-3 border border-red-100 text-red-600 bg-red-50 rounded-xl font-medium hover:bg-red-100 transition-colors"
                     >
-                      Dashboard
-                    </a>
+                      Logout
+                    </button>
                   ) : (
                     <button 
                       className="w-full text-center px-6 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
