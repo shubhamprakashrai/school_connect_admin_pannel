@@ -30,28 +30,41 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Simulate API call with a small delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Simple demo logic - in a real app, this would come from the auth response
-      const email = formData.email.toLowerCase();
+      const email = formData.email.toLowerCase().trim();
       let role: UserRole = 'student'; // Default to student
       
-      if (email.includes('admin')) {
+      if (email.includes('admin') || email.includes('superadmin')) {
         role = 'admin';
       } else if (email.includes('teacher')) {
         role = 'teacher';
       } else if (email.includes('parent')) {
         role = 'parent';
       }
-      // else default to 'student'
       
+      // For demo purposes, accept any non-empty password
+      if (formData.password.trim() === '') {
+        throw new Error('Password cannot be empty');
+      }
+      
+      console.log('Login successful, calling onLoginSuccess with role:', role);
       onLoginSuccess(role);
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -83,9 +96,11 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           <h2 className="mt-4 text-2xl font-bold text-gray-900">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Sign in to your EduSmart360 account</p>
           <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-            <p>Demo accounts:</p>
-            <p className="font-mono text-xs mt-1">admin@school.edu / teacher@school.edu</p>
-            <p className="font-mono text-xs">parent@school.edu / student@school.edu</p>
+            <p>Demo accounts (any password works):</p>
+            <p className="font-mono text-xs mt-1">admin@school.com</p>
+            <p className="font-mono text-xs">teacher@school.com</p>
+            <p className="font-mono text-xs">parent@school.com</p>
+            <p className="font-mono text-xs">student@school.com</p>
           </div>
         </div>
 
