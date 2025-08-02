@@ -15,6 +15,7 @@ import Footer from './components/Footer';
 import LoginModal from './components/LoginModal';
 import Drawer from './layouts/super_admin_dashboardLayout/Drawer';
 import AddSchoolForm from './SuperAdminPages/SuperAdminDashboard/AddSchoolForm';
+import SchoolList from './SuperAdminPages/SuperAdminDashboard/SchoolList/SchoolList';
 
 // Error Boundary Component
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -147,10 +148,7 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
               <p>Welcome to the admin dashboard. Use the sidebar to navigate.</p>
             </div>} />
             <Route path="schools">
-              <Route index element={<div className="bg-white p-6 rounded-lg shadow-sm">
-                <h1 className="text-2xl font-bold mb-4">Schools Management</h1>
-                <p>Manage all schools in the system.</p>
-              </div>} />
+              <Route index element={<SchoolList />} />
               <Route path="add" element={<AddSchoolForm />} />
             </Route>
             <Route path="users" element={<div className="bg-white p-6 rounded-lg shadow-sm">
