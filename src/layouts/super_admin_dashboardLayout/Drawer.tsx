@@ -47,7 +47,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
       key: 'users',
       icon: <Users className="w-5 h-5" />, 
       label: 'Users', 
-      path: '/SuperAdminPages/SuperAdminDashboard/AddSchoolForm' 
+      path: '/dashboard/users'
     },
     { 
       key: 'settings',

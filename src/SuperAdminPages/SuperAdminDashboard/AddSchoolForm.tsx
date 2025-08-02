@@ -612,9 +612,26 @@ const AddSchoolForm: React.FC = () => {
               type="text"
               name="adminFullName"
               value={newSchool.adminUser.fullName}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                setNewSchool(prev => ({
+                  ...prev,
+                  adminUser: {
+                    ...prev.adminUser,
+                    fullName: e.target.value
+                  }
+                }));
+              }}
               required
               placeholder="Enter admin full name"
+              style={{
+                width: '100%',
+                padding: '0.625rem 0.875rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '6px',
+                fontSize: '0.9375rem',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+              
+              }}
             />
           </div>
 
@@ -643,7 +660,32 @@ const AddSchoolForm: React.FC = () => {
           </div>
           
           <div className="form-actions">
-            <button type="submit" className="btn-primary">
+            <button 
+              type="submit" 
+              className="btn-primary"
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.06)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                minWidth: '140px',
+            
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
               {editingId !== null ? 'Update School' : 'Add School'}
             </button>
             
@@ -652,6 +694,18 @@ const AddSchoolForm: React.FC = () => {
                 type="button" 
                 className="btn-secondary"
                 onClick={resetForm}
+                style={{
+                  background: 'white',
+                  color: '#4f46e5',
+                  border: '1px solid #e0e7ff',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  
+                }}
               >
                 Cancel
               </button>
@@ -666,7 +720,7 @@ const AddSchoolForm: React.FC = () => {
           justify-content: center;
           align-items: flex-start;
           min-height: 100vh;
-          padding: 2rem;
+          padding: 0.5rem 2rem 2rem;
           background-color: #f5f7fa;
         }
         
