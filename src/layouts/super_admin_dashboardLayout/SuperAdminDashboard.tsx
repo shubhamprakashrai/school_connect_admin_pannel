@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Drawer from './Drawer';
+import AddSchoolForm from '../../SuperAdminPages/SuperAdminDashboard/AddSchoolForm';
+
 
 interface SuperAdminDashboardProps {
   onLogout: () => void;
@@ -68,12 +70,15 @@ const SuperAdminDashboard = ({ onLogout }: SuperAdminDashboardProps) => {
                 <p>Welcome to the School Connect Admin Panel. Use the sidebar to navigate.</p>
               </div>
             } />
-            <Route path="schools" element={
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h1 className="text-2xl font-bold mb-4">Schools Management</h1>
-                <p>Manage all schools in the system.</p>
-              </div>
-            } />
+            <Route path="schools">
+              <Route index element={
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h1 className="text-2xl font-bold mb-4">Schools Management</h1>
+                  <p>Manage all schools in the system.</p>
+                </div>
+              } />
+              <Route path="add" element={<AddSchoolForm />} />
+            </Route>
             <Route path="users" element={
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h1 className="text-2xl font-bold mb-4">Users Management</h1>

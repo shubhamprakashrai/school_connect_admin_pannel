@@ -9,23 +9,48 @@ interface DrawerProps {
 }
 
 const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
+  const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({
+    schools: true
+  });
+
+  const toggleItem = (key: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   const menuItems = [
     { 
+      key: 'dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />, 
-      label: 'Add School', 
-      path: '/dashboard' 
+      label: 'Dashboard', 
+      path: '/dashboard',
+      exact: true
     },
     { 
+      key: 'schools',
       icon: <School className="w-5 h-5" />, 
-      label: 'Schools', 
-      path: '/dashboard/schools' 
+      label: 'Schools',
+      children: [
+        { 
+          label: 'Add School', 
+          path: '/dashboard/schools/add' 
+        },
+        { 
+          label: 'View Schools', 
+          path: '/dashboard/schools' 
+        }
+      ]
     },
     { 
+      key: 'users',
       icon: <Users className="w-5 h-5" />, 
       label: 'Users', 
-      path: '/dashboard/users' 
+      path: '/SuperAdminPages/SuperAdminDashboard/AddSchoolForm' 
     },
     { 
+      key: 'settings',
       icon: <Settings className="w-5 h-5" />, 
       label: 'Settings', 
       path: '/dashboard/settings' 
@@ -51,21 +76,70 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         <nav className="flex-1 px-2 py-4 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-2 transition-colors ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`
-                  }
-                  onClick={onClose}
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  <span className="truncate">{item.label}</span>
-                </NavLink>
+              <li key={item.key || item.path}>
+                {item.children ? (
+                  <>
+                    <button
+                      onClick={() => toggleItem(item.key!)}
+                      className={`flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg mx-2 transition-colors ${
+                        expandedItems[item.key!] ? 'text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <span className="mr-3">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </div>
+                      <svg
+                        className={`w-4 h-4 transition-transform ${
+                          expandedItems[item.key!] ? 'transform rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {expandedItems[item.key!] && (
+                      <ul className="ml-8 mt-1 space-y-1">
+                        {item.children.map((child, index) => (
+                          <li key={`${item.key}-${index}`}>
+                            <NavLink
+                              to={child.path}
+                              className={({ isActive }) =>
+                                `flex items-center px-4 py-2 text-sm rounded-lg mx-2 transition-colors ${
+                                  isActive
+                                    ? 'bg-blue-50 text-blue-600 font-medium'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                                }`
+                              }
+                              onClick={onClose}
+                            >
+                              <span className="truncate">{child.label}</span>
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <NavLink
+                    to={item.path}
+                    end={item.exact}
+                    className={({ isActive }) =>
+                      `flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-2 transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`
+                    }
+                    onClick={onClose}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>
