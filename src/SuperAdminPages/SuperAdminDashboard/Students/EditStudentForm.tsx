@@ -240,8 +240,7 @@ const EditStudentForm: React.FC = () => {
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <form onSubmit={formik.handleSubmit}>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-            {/* Left Column - Student Photo */}
+          {/* <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}> */}
             <Box sx={{ width: { xs: '100%', md: '25%' }, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Box sx={{ position: 'relative', mb: 2 }}>
@@ -751,12 +750,12 @@ const EditStudentForm: React.FC = () => {
           </form>
         </Paper>
       
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
         <Alert 
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity}
