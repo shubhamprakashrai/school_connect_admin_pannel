@@ -9,7 +9,8 @@ import {
   Edit, ArrowBack, Email, Phone, Cake, Transgender, Work, School, Class,
   Home, CalendarToday, Person, Description, Download, Delete, Add
 } from '@mui/icons-material';
-import { teacherAPI, Teacher } from './types/teacher.types';
+import { Teacher } from './types/teacher.types';
+import { teacherAPI } from './api/teacherAPI';
 import { format } from 'date-fns';
 
 interface TabPanelProps {
@@ -137,173 +138,166 @@ const ViewTeacher: React.FC = () => {
       </Box>
 
       {/* Main Content */}
-      <Grid container spacing={3}>
-        {/* Left Column */}
-        <Grid item xs={12} md={4}>
-          <Card variant="outlined">
-            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Avatar
-                src={teacher.profilePhoto}
-                alt={teacher.fullName}
-                sx={{ width: 150, height: 150, mb: 2, border: `3px solid ${theme.palette.primary.main}` }}
-              />
-              <Typography variant="h6">{teacher.fullName}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {teacher.qualification}
-              </Typography>
-              <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <Box sx={{ p: 3, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3, alignItems: 'center' }}>
+            <Avatar
+              src={teacher.profilePhoto}
+              alt={teacher.fullName}
+              sx={{ 
+                width: 120, 
+                height: 120, 
+                border: `3px solid ${theme.palette.primary.main}` 
+              }}
+            />
+            <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+              <Typography variant="h5" gutterBottom>{teacher.fullName}</Typography>
+              <Typography variant="body1" color="primary" gutterBottom>
                 {teacher.teacherId}
               </Typography>
+              <Typography variant="body1" color="text.secondary" gutterBottom>
+                {teacher.qualification}
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+                <Chip 
+                  icon={<Work fontSize="small" />} 
+                  label={`${teacher.experience} ${teacher.experience === 1 ? 'year' : 'years'} experience`} 
+                  variant="outlined" 
+                  size="small"
+                />
+                <Chip 
+                  icon={<Class fontSize="small" />} 
+                  label={`${teacher.assignedClasses?.length || 0} classes`} 
+                  variant="outlined" 
+                  size="small"
+                />
+              </Box>
             </Box>
-            
-            <Divider />
-            
-            <List>
-              <ListItem>
-                <ListItemIcon><Email color="action" /></ListItemIcon>
-                <ListItemText primary="Email" secondary={teacher.email} />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon><Phone color="action" /></ListItemIcon>
-                <ListItemText primary="Phone" secondary={teacher.phone} />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon><Cake color="action" /></ListItemIcon>
-                <ListItemText 
-                  primary="Date of Birth" 
-                  secondary={format(new Date(teacher.dateOfBirth), 'MMMM d, yyyy')} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon><Transgender color="action" /></ListItemIcon>
-                <ListItemText primary="Gender" secondary={teacher.gender} />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon><Work color="action" /></ListItemIcon>
-                <ListItemText 
-                  primary="Experience" 
-                  secondary={`${teacher.experience} ${teacher.experience === 1 ? 'year' : 'years'}`} 
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon><CalendarToday color="action" /></ListItemIcon>
-                <ListItemText 
-                  primary="Joining Date" 
-                  secondary={format(new Date(teacher.joiningDate), 'MMMM d, yyyy')} 
-                />
-              </ListItem>
-            </List>
+          </Box>
+          
+          <Divider />
+          
+          <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
+            <Button startIcon={<Email />} color="inherit">
+              {teacher.email}
+            </Button>
+            <Button startIcon={<Phone />} color="inherit">
+              {teacher.phone}
+            </Button>
+            <Button startIcon={<Cake />} color="inherit">
+              {format(new Date(teacher.dateOfBirth), 'MMM d, yyyy')}
+            </Button>
+            <Button startIcon={<Transgender />} color="inherit">
+              {teacher.gender}
+            </Button>
+          </Box>
+        </Card>
+
+        <Tabs 
+          value={tabValue} 
+          onChange={(_, newValue) => setTabValue(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="Overview" />
+          <Tab label="Documents" />
+          <Tab label="Classes" />
+        </Tabs>
+
+        <TabPanel value={tabValue} index={0}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Address</Typography>
+              <Typography variant="body1">{teacher.address}</Typography>
+            </CardContent>
           </Card>
-        </Grid>
 
-        {/* Right Column */}
-        <Grid item xs={12} md={8}>
-          <Tabs 
-            value={tabValue} 
-            onChange={(_, newValue) => setTabValue(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{ mb: 2 }}
-          >
-            <Tab label="Overview" />
-            <Tab label="Documents" />
-            <Tab label="Classes" />
-          </Tabs>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Specialization</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {teacher.specialization.map((subject, index) => (
+                  <Chip key={index} label={subject} color="primary" variant="outlined" />
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+        </TabPanel>
 
-          <TabPanel value={tabValue} index={0}>
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Address</Typography>
-                <Typography variant="body1">{teacher.address}</Typography>
-              </CardContent>
-            </Card>
-
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Specialization</Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {teacher.specialization.map((subject, index) => (
-                    <Chip key={index} label={subject} variant="outlined" />
+        <TabPanel value={tabValue} index={1}>
+          <Card variant="outlined">
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">Documents</Typography>
+                <Button variant="outlined" size="small" startIcon={<Add />}>
+                  Add Document
+                </Button>
+              </Box>
+              
+              {teacher.documents && teacher.documents.length > 0 ? (
+                <List>
+                  {teacher.documents.map((doc) => (
+                    <ListItem 
+                      key={doc.id} 
+                      divider
+                      secondaryAction={
+                        <Box>
+                          <IconButton size="small" sx={{ mr: 1 }}>
+                            <Download fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="error">
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      }
+                    >
+                      <ListItemIcon><Description color="action" /></ListItemIcon>
+                      <ListItemText 
+                        primary={doc.name}
+                        secondary={`Type: ${doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}`}
+                      />
+                    </ListItem>
                   ))}
-                </Box>
-              </CardContent>
-            </Card>
-          </TabPanel>
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                  No documents uploaded yet.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </TabPanel>
 
-          <TabPanel value={tabValue} index={1}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="h6">Documents</Typography>
-                  <Button variant="outlined" size="small" startIcon={<Add />}>
-                    Add Document
-                  </Button>
-                </Box>
-                
-                {teacher.documents && teacher.documents.length > 0 ? (
-                  <List>
-                    {teacher.documents.map((doc) => (
-                      <ListItem 
-                        key={doc.id} 
-                        divider
-                        secondaryAction={
-                          <Box>
-                            <IconButton size="small" sx={{ mr: 1 }}>
-                              <Download fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" color="error">
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </Box>
+        <TabPanel value={tabValue} index={2}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Assigned Classes</Typography>
+              {teacher.assignedClasses && teacher.assignedClasses.length > 0 ? (
+                <List>
+                  {teacher.assignedClasses.map((cls, index) => (
+                    <ListItem key={index} divider>
+                      <ListItemIcon><Class color="action" /></ListItemIcon>
+                      <ListItemText 
+                        primary={`Class ${cls}`}
+                        secondary={
+                          teacher.isClassTeacher && teacher.assignedClasses[0] === cls 
+                            ? 'Class Teacher' 
+                            : 'Subject Teacher'
                         }
-                      >
-                        <ListItemIcon><Description color="action" /></ListItemIcon>
-                        <ListItemText 
-                          primary={doc.name}
-                          secondary={`Type: ${doc.type.charAt(0).toUpperCase() + doc.type.slice(1)}`}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
-                    No documents uploaded yet.
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Assigned Classes</Typography>
-                {teacher.assignedClasses && teacher.assignedClasses.length > 0 ? (
-                  <List>
-                    {teacher.assignedClasses.map((cls, index) => (
-                      <ListItem key={index} divider>
-                        <ListItemIcon><Class color="action" /></ListItemIcon>
-                        <ListItemText 
-                          primary={`Class ${cls}`}
-                          secondary={
-                            teacher.isClassTeacher && teacher.assignedClasses[0] === cls 
-                              ? 'Class Teacher' 
-                              : 'Subject Teacher'
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
-                    No classes assigned yet.
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </TabPanel>
-        </Grid>
-      </Grid>
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                  No classes assigned yet.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </TabPanel>
+      </Box>
     </Box>
   );
 };

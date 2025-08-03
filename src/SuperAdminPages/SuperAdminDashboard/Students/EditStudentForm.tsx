@@ -12,7 +12,7 @@ import {
 } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { Student, StudentFormData, studentAPI } from './studentAPI';
+import { StudentFormData, studentAPI } from './studentAPI';
 
 // Validation Schema
 const validationSchema = Yup.object({

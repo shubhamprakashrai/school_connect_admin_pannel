@@ -19,6 +19,7 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-slick": "^0.23.13",
     "@types/yup": "^0.29.14",
+    "date-fns": "^4.1.0",
     "formik": "^2.4.6",
     "framer-motion": "^12.23.9",
     "lucide-react": "^0.344.0",

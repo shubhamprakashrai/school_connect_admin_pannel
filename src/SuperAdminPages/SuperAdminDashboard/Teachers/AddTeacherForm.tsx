@@ -1,10 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
-import { Grid } from '@mui/material';
-import { teacherAPI } from './api/teacherAPI';
-import {
+import { 
   Box,
   Button,
   Paper,
@@ -18,15 +16,10 @@ import {
   FormControlLabel,
   Checkbox,
   Chip,
-  Avatar,
-  IconButton,
-  InputAdornment,
-,
-  Grid,
-  Grid,
-  Grid  FormHelperText,
-  useTheme,
+  FormHelperText,
   CircularProgress,
+  Avatar,
+  IconButton
 } from '@mui/material';
 import {
   AddPhotoAlternate as AddPhotoIcon,
@@ -38,7 +31,8 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { teacherAPI, TeacherFormData } from './types/teacher.types';
+import { TeacherFormData } from './types/teacher.types';
+import { teacherAPI } from './api/teacherAPI';
 
 // Mock data for select options
 const QUALIFICATIONS = [
@@ -52,6 +46,7 @@ const QUALIFICATIONS = [
   'Other',
 ];
 
+// Mock subjects data
 const SUBJECTS = [
   'Mathematics',
   'Physics',
@@ -70,41 +65,40 @@ const SUBJECTS = [
   'Physical Education',
 ];
 
-const CLASSES = [
-  'Nursery',
-  'LKG',
-  'UKG',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '10',
-  '11',
-  '12',
-];
+// Classes and sections constants are currently not in use
+// const CLASSES = [
+//   'Nursery',
+//   'LKG',
+//   'UKG',
+//   '1',
+//   '2',
+//   '3',
+//   '4',
+//   '5',
+//   '6',
+//   '7',
+//   '8',
+//   '9',
+//   '10',
+//   '11',
+//   '12',
+// ];
 
-const SECTIONS = ['A', 'B', 'C', 'D'];
+// const SECTIONS = ['A', 'B', 'C', 'D'];
 
-// Generate class sections (e.g., 1-A, 1-B, etc.)
-const generateClassSections = () => {
-  const sections: string[] = [];
-  CLASSES.forEach(cls => {
-    SECTIONS.forEach(section => {
-      sections.push(`${cls}-${section}`);
-    });
-  });
-  return sections;
-};
-
-const CLASS_SECTIONS = generateClassSections();
+// Class sections generation commented out as it's not currently used
+// const generateClassSections = () => {
+//   const sections: string[] = [];
+//   CLASSES.forEach(cls => {
+//     SECTIONS.forEach(section => {
+//       sections.push(`${cls}-${section}`);
+//     });
+//   });
+//   return sections;
+// };
+// const CLASS_SECTIONS = generateClassSections();
 
 const AddTeacherForm: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -333,67 +327,72 @@ const AddTeacherForm: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 3 }} />
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="fullName"
-                    name="fullName"
-                    label="Full Name"
-                    value={formik.values.fullName}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-                    helperText={formik.touched.fullName && formik.errors.fullName}
-                    size="small"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl 
-                    fullWidth 
-                    size="small"
-                    error={formik.touched.gender && Boolean(formik.errors.gender)}
-                  >
-                    <InputLabel id="gender-label">Gender</InputLabel>
-                    <Select
-                      labelId="gender-label"
-                      id="gender"
-                      name="gender"
-                      value={formik.values.gender}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <TextField
+                      fullWidth
+                      id="fullName"
+                      name="fullName"
+                      label="Full Name"
+                      value={formik.values.fullName}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
-                      label="Gender"
+                      error={formik.touched.fullName && Boolean(formik.errors.fullName)}
+                      helperText={formik.touched.fullName && formik.errors.fullName}
+                      size="small"
+                    />
+                  </Box>
+                  
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControl 
+                      fullWidth 
+                      size="small"
+                      error={formik.touched.gender && Boolean(formik.errors.gender)}
                     >
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                    {formik.touched.gender && formik.errors.gender && (
-                      <FormHelperText>{formik.errors.gender}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
+                      <InputLabel id="gender-label">Gender</InputLabel>
+                      <Select
+                        labelId="gender-label"
+                        id="gender"
+                        name="gender"
+                        value={formik.values.gender}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        label="Gender"
+                      >
+                        <MenuItem value="Male">Male</MenuItem>
+                        <MenuItem value="Female">Female</MenuItem>
+                        <MenuItem value="Other">Other</MenuItem>
+                      </Select>
+                      {formik.touched.gender && formik.errors.gender && (
+                        <FormHelperText>{formik.errors.gender}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Box>
+                </Box>
                 
-                <Grid item xs={12} md={6}>
-                  <DatePicker
-                    label="Date of Birth"
-                    value={formik.values.dateOfBirth ? new Date(formik.values.dateOfBirth) : null}
-                    onChange={(date) => {
-                      formik.setFieldValue('dateOfBirth', date ? date.toISOString().split('T')[0] : '');
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                        error: formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth),
-                        helperText: formik.touched.dateOfBirth && formik.errors.dateOfBirth,
-                      },
-                    }}
-                  />
-                </Grid>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <DatePicker
+                      label="Date of Birth"
+                      value={formik.values.dateOfBirth ? new Date(formik.values.dateOfBirth) : null}
+                      onChange={(date) => {
+                        formik.setFieldValue('dateOfBirth', date ? date.toISOString().split('T')[0] : '');
+                      }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          size: 'small',
+                          error: formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth),
+                          helperText: formik.touched.dateOfBirth && formik.errors.dateOfBirth,
+                        },
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }} />
+                </Box>
                 
-                <Grid item xs={12}>
+                <Box>
                   <TextField
                     fullWidth
                     id="address"
@@ -408,8 +407,8 @@ const AddTeacherForm: React.FC = () => {
                     helperText={formik.touched.address && formik.errors.address}
                     size="small"
                   />
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Box>
             
             {/* Contact Information Section */}
@@ -419,55 +418,60 @@ const AddTeacherForm: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 3 }} />
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="email"
-                    name="email"
-                    label="Email Address"
-                    type="email"
-                    value={formik.values.email}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    error={formik.touched.email && Boolean(formik.errors.email)}
-                    helperText={formik.touched.email && formik.errors.email}
-                    size="small"
-                  />
-                </Grid>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <TextField
+                      fullWidth
+                      id="email"
+                      name="email"
+                      label="Email Address"
+                      type="email"
+                      value={formik.values.email}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={formik.touched.email && Boolean(formik.errors.email)}
+                      helperText={formik.touched.email && formik.errors.email}
+                      size="small"
+                    />
+                  </Box>
+                  
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <TextField
+                      fullWidth
+                      id="phone"
+                      name="phone"
+                      label="Phone Number"
+                      type="tel"
+                      value={formik.values.phone}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={formik.touched.phone && Boolean(formik.errors.phone)}
+                      helperText={formik.touched.phone && formik.errors.phone}
+                      size="small"
+                    />
+                  </Box>
+                </Box>
                 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="phone"
-                    name="phone"
-                    label="Phone Number"
-                    type="tel"
-                    value={formik.values.phone}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    error={formik.touched.phone && Boolean(formik.errors.phone)}
-                    helperText={formik.touched.phone && formik.errors.phone}
-                    size="small"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="alternatePhone"
-                    name="alternatePhone"
-                    label="Alternate Phone (Optional)"
-                    type="tel"
-                    value={formik.values.alternatePhone}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    error={formik.touched.alternatePhone && Boolean(formik.errors.alternatePhone)}
-                    helperText={formik.touched.alternatePhone && formik.errors.alternatePhone}
-                    size="small"
-                  />
-                </Grid>
-              </Grid>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <TextField
+                      fullWidth
+                      id="alternatePhone"
+                      name="alternatePhone"
+                      label="Alternate Phone (Optional)"
+                      type="tel"
+                      value={formik.values.alternatePhone}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={formik.touched.alternatePhone && Boolean(formik.errors.alternatePhone)}
+                      helperText={formik.touched.alternatePhone && formik.errors.alternatePhone}
+                      size="small"
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }} />
+                </Box>
+              </Box>
             </Box>
             
             {/* Academic Information Section */}
@@ -477,204 +481,133 @@ const AddTeacherForm: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 3 }} />
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <FormControl 
-                    fullWidth 
-                    size="small"
-                    error={formik.touched.qualification && Boolean(formik.errors.qualification)}
-                  >
-                    <InputLabel id="qualification-label">Highest Qualification</InputLabel>
-                    <Select
-                      labelId="qualification-label"
-                      id="qualification"
-                      name="qualification"
-                      value={formik.values.qualification}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControl fullWidth size="small" error={formik.touched.qualification && Boolean(formik.errors.qualification)}>
+                      <InputLabel id="qualification-label">Highest Qualification</InputLabel>
+                      <Select
+                        labelId="qualification-label"
+                        id="qualification"
+                        name="qualification"
+                        value={formik.values.qualification}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        label="Highest Qualification"
+                      >
+                        {QUALIFICATIONS.map((qual) => (
+                          <MenuItem key={qual} value={qual}>
+                            {qual}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {formik.touched.qualification && formik.errors.qualification && (
+                        <FormHelperText>{formik.errors.qualification}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Box>
+                  
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <TextField
+                      fullWidth
+                      id="experience"
+                      name="experience"
+                      label="Experience (Years)"
+                      type="number"
+                      value={formik.values.experience}
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
-                      label="Highest Qualification"
-                    >
-                      {QUALIFICATIONS.map((qual) => (
-                        <MenuItem key={qual} value={qual}>
-                          {qual}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {formik.touched.qualification && formik.errors.qualification && (
-                      <FormHelperText>{formik.errors.qualification}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    id="experience"
-                    name="experience"
-                    label="Experience (Years)"
-                    type="number"
-                    value={formik.values.experience}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    error={formik.touched.experience && Boolean(formik.errors.experience)}
-                    helperText={formik.touched.experience && formik.errors.experience}
-                    size="small"
-                    InputProps={{
-                      inputProps: { min: 0, max: 50 },
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <FormControl 
-                    fullWidth 
-                    size="small"
-                    error={formik.touched.specialization && Boolean(formik.errors.specialization)}
-                  >
-                    <InputLabel id="specialization-label">Subjects / Specialization</InputLabel>
-                    <Select
-                      labelId="specialization-label"
-                      id="specialization"
-                      name="specialization"
-                      multiple
-                      value={formik.values.specialization}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        formik.setFieldValue(
-                          'specialization',
-                          typeof value === 'string' ? value.split(',') : value
-                        );
+                      error={formik.touched.experience && Boolean(formik.errors.experience)}
+                      helperText={formik.touched.experience && formik.errors.experience}
+                      size="small"
+                      InputProps={{
+                        inputProps: { min: 0, max: 50 },
                       }}
-                      onBlur={formik.handleBlur}
-                      label="Subjects / Specialization"
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {(selected as string[]).map((value) => (
-                            <Chip key={value} label={value} size="small" />
-                          ))}
-                        </Box>
+                    />
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControl fullWidth size="small" error={formik.touched.specialization && Boolean(formik.errors.specialization)}>
+                      <InputLabel id="specialization-label">Subjects / Specialization</InputLabel>
+                      <Select
+                        labelId="specialization-label"
+                        id="specialization"
+                        name="specialization"
+                        multiple
+                        value={formik.values.specialization}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          formik.setFieldValue(
+                            'specialization',
+                            typeof value === 'string' ? value.split(',') : value
+                          );
+                        }}
+                        onBlur={formik.handleBlur}
+                        label="Subjects / Specialization"
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {(selected as string[]).map((value) => (
+                              <Chip key={value} label={value} size="small" />
+                            ))}
+                          </Box>
+                        )}
+                      >
+                        {SUBJECTS.map((subject) => (
+                          <MenuItem key={subject} value={subject}>
+                            {subject}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {formik.touched.specialization && formik.errors.specialization && (
+                        <FormHelperText>{formik.errors.specialization}</FormHelperText>
                       )}
-                    >
-                      {SUBJECTS.map((subject) => (
-                        <MenuItem key={subject} value={subject}>
-                          {subject}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {formik.touched.specialization && formik.errors.specialization && (
-                      <FormHelperText>{formik.errors.specialization}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Box>
-            
-            {/* School Assignment Section */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 2, color: 'text.primary' }}>
-                School Assignment
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <DatePicker
-                    label="Joining Date"
-                    value={formik.values.joiningDate ? new Date(formik.values.joiningDate) : null}
-                    onChange={(date) => {
-                      formik.setFieldValue('joiningDate', date ? date.toISOString().split('T')[0] : '');
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                        error: formik.touched.joiningDate && Boolean(formik.errors.joiningDate),
-                        helperText: formik.touched.joiningDate && formik.errors.joiningDate,
+                    </FormControl>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formik.values.isClassTeacher}
+                          onChange={formik.handleChange}
+                          name="isClassTeacher"
+                          color="primary"
+                        />
                       }
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel id="assignedClasses-label">Assigned Classes (Optional)</InputLabel>
-                    <Select
-                      labelId="assignedClasses-label"
-                      id="assignedClasses"
-                      name="assignedClasses"
-                      multiple
-                      value={formik.values.assignedClasses}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        formik.setFieldValue(
-                          'assignedClasses',
-                          typeof value === 'string' ? value.split(',') : value
-                        );
-                      }}
-                      onBlur={formik.handleBlur}
-                      label="Assigned Classes (Optional)"
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {(selected as string[]).map((value) => (
-                            <Chip 
-                              key={value} 
-                              label={value} 
-                              size="small"
-                              color={formik.values.isClassTeacher ? 'primary' : 'default'}
-                            />
-                          ))}
-                        </Box>
-                      )}
-                    >
-                      {CLASS_SECTIONS.map((cls) => (
-                        <MenuItem key={cls} value={cls}>
-                          {cls}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.isClassTeacher}
-                        onChange={formik.handleChange}
-                        name="isClassTeacher"
-                        color="primary"
-                      />
-                    }
-                    label="Is Class Teacher?"
-                  />
-                  
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.transportAssigned}
-                        onChange={formik.handleChange}
-                        name="transportAssigned"
-                        color="primary"
-                      />
-                    }
-                    label="Transport Assigned"
-                    sx={{ ml: 3 }}
-                  />
-                  
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.hostelAssigned}
-                        onChange={formik.handleChange}
-                        name="hostelAssigned"
-                        color="primary"
-                      />
-                    }
-                    label="Hostel Assigned"
-                    sx={{ ml: 3 }}
-                  />
-                </Grid>
-              </Grid>
+                      label="Is Class Teacher?"
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formik.values.transportAssigned}
+                          onChange={formik.handleChange}
+                          name="transportAssigned"
+                          color="primary"
+                        />
+                      }
+                      label="Transport Assigned"
+                    />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={formik.values.hostelAssigned}
+                          onChange={formik.handleChange}
+                          name="hostelAssigned"
+                          color="primary"
+                        />
+                      }
+                      label="Hostel Assigned"
+                    />
+                  </Box>
+                </Box>
             </Box>
             
             {/* Documents Section */}
@@ -732,8 +665,8 @@ const AddTeacherForm: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 3 }} />
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
                   <TextField
                     fullWidth
                     id="password"
@@ -747,9 +680,9 @@ const AddTeacherForm: React.FC = () => {
                     helperText={formik.touched.password && formik.errors.password}
                     size="small"
                   />
-                </Grid>
+                </Box>
                 
-                <Grid item xs={12} md={6}>
+                <Box sx={{ flex: 1, minWidth: { md: 'calc(50% - 8px)' } }}>
                   <TextField
                     fullWidth
                     id="confirmPassword"
@@ -763,8 +696,8 @@ const AddTeacherForm: React.FC = () => {
                     helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
                     size="small"
                   />
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Box>
             
             {/* Form Actions */}

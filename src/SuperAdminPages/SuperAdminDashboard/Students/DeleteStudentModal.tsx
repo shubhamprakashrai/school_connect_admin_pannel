@@ -12,7 +12,8 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
 import { Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 import { studentAPI } from './studentAPI';

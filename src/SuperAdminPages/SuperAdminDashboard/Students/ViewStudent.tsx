@@ -4,7 +4,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   Avatar,
   Button,
   Divider,
@@ -24,6 +23,7 @@ import {
   ListItemIcon,
   ListItemText,
   useTheme,
+  TextField, // this was missing earlier too
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -38,7 +38,8 @@ import {
   Info as InfoIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { Student, studentAPI } from './studentAPI';
+import { Student, StudentFormData } from './types';
+import { studentAPI } from './studentAPI';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -223,51 +224,72 @@ const ViewStudent: React.FC = () => {
               {student.name}
             </Typography>
             
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: 3,
+              width: '100%',
+              flexWrap: 'wrap'
+            }}>
+              {/* First Column */}
+              <Box sx={{ 
+                flex: 1,
+                minWidth: { sm: '250px' },
+                maxWidth: { sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }
+              }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <SchoolIcon color="action" sx={{ mr: 1 }} />
+                  <SchoolIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>
                     Class {student.class} - Section {student.section}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <PersonIcon color="action" sx={{ mr: 1 }} />
+                  <PersonIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>Roll No: {student.rollNo}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <DateIcon color="action" sx={{ mr: 1 }} />
+                  <DateIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>DOB: {formatDate(student.dateOfBirth)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <InfoIcon color="action" sx={{ mr: 1 }} />
+                  <InfoIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>Gender: {student.gender}</Typography>
                 </Box>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6} md={4}>
+              {/* Second Column */}
+              <Box sx={{ 
+                flex: 1,
+                minWidth: { sm: '250px' },
+                maxWidth: { sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }
+              }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <PhoneIcon color="action" sx={{ mr: 1 }} />
+                  <PhoneIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>{student.phone || 'N/A'}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <EmailIcon color="action" sx={{ mr: 1 }} />
+                  <EmailIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>{student.email}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <DateIcon color="action" sx={{ mr: 1 }} />
+                  <DateIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
                   <Typography>
-                    Admission Date: {formatDate(student.admissionDate)}
+                    Admission: {formatDate(student.admissionDate)}
                   </Typography>
                 </Box>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
+              {/* Third Column */}
+              <Box sx={{ 
+                flex: 1,
+                minWidth: { sm: '250px' },
+                maxWidth: { sm: '100%', md: 'calc(33.33% - 16px)' }
+              }}>
+                <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Additional Information
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {student.transportOpted && (
                       <Chip 
                         label="Transport" 
@@ -294,8 +316,8 @@ const ViewStudent: React.FC = () => {
                     ))}
                   </Box>
                 </Paper>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
         </Box>
       </Paper>
@@ -317,9 +339,18 @@ const ViewStudent: React.FC = () => {
         </Tabs>
         
         <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+            width: '100%',
+            mb: 3
+          }}>
+            <Box sx={{ 
+              flex: 1,
+              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
+            }}>
+              <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     Contact Details
@@ -362,10 +393,13 @@ const ViewStudent: React.FC = () => {
                   </List>
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
+            <Box sx={{ 
+              flex: 1,
+              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
+            }}>
+              <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     Academic Details
@@ -405,14 +439,23 @@ const ViewStudent: React.FC = () => {
                   </List>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </TabPanel>
         
         <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+            width: '100%',
+            mb: 3
+          }}>
+            <Box sx={{ 
+              flex: 1,
+              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
+            }}>
+              <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     Parent/Guardian Information
@@ -445,10 +488,13 @@ const ViewStudent: React.FC = () => {
                   </List>
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
+            <Box sx={{ 
+              flex: 1,
+              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
+            }}>
+              <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     Additional Contacts
@@ -461,8 +507,8 @@ const ViewStudent: React.FC = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </TabPanel>
         
         <TabPanel value={tabValue} index={2}>
