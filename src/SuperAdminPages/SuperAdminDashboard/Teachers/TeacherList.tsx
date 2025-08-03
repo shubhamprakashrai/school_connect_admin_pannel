@@ -154,17 +154,22 @@ const TeacherList: React.FC = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'csv' | 'excel' = 'csv') => {
     try {
-      const blob = await teacherAPI.exportTeachers({
+      // Get filtered teachers data (not used directly but ensures filters are applied on the server)
+      await teacherAPI.getTeachers({
         ...filters,
         searchTerm: searchTerm || undefined,
       });
       
-      const url = window.URL.createObjectURL(new Blob([blob]));
+      // Export with the specified format
+      const blob = await teacherAPI.exportTeachers(format);
+      
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `teachers_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const extension = format === 'csv' ? 'csv' : 'xlsx';
+      link.setAttribute('download', `teachers_${new Date().toISOString().split('T')[0]}.${extension}`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -182,6 +187,7 @@ const TeacherList: React.FC = () => {
       fullName: 'John Doe',
       email: 'john.doe@example.com',
       phone: '+1234567890',
+      alternatePhone: '+1987654321',
       dateOfBirth: '1985-05-15',
       gender: 'Male',
       qualification: 'M.Sc, B.Ed',
@@ -194,9 +200,10 @@ const TeacherList: React.FC = () => {
       transportAssigned: true,
       hostelAssigned: false,
       status: 'Active',
-      profilePhoto: 'https://randomuser.me/api/portraits/men/1.jpg',
-      createdAt: '2020-01-15T00:00:00Z',
-      updatedAt: '2023-01-15T00:00:00Z',
+      profilePhoto: 'https://i.pravatar.cc/150?img=1',
+      documents: [],
+      createdAt: '2020-01-15T10:00:00Z',
+      updatedAt: '2023-01-15T10:00:00Z'
     },
     // Add more mock data as needed
   ];
@@ -218,10 +225,19 @@ const TeacherList: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<ExportIcon />}
-            onClick={handleExport}
+            onClick={() => handleExport('csv')}
             disabled={loading}
           >
-            Export
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<ExportIcon />}
+            onClick={() => handleExport('excel')}
+            disabled={loading}
+            sx={{ ml: 1 }}
+          >
+            Export Excel
           </Button>
           <Button
             variant="contained"

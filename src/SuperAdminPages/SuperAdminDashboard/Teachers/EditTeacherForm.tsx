@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AlertColor } from '@mui/material';
 import {
   Box, Button, Paper, TextField, Typography, Divider, FormControl,
   InputLabel, Select, MenuItem, FormControlLabel, Checkbox, Chip,
-  Avatar, IconButton, Grid, CircularProgress, Snackbar, Alert
+  Avatar, IconButton, CircularProgress, Snackbar, Alert
 } from '@mui/material';
 import {
   AddPhotoAlternate as AddPhotoIcon, Delete as DeleteIcon, Save as SaveIcon,
@@ -14,7 +15,8 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { teacherAPI, Teacher, TeacherFormData } from './types/teacher.types';
+import { Teacher, TeacherFormData } from './types/teacher.types';
+import { teacherAPI } from './api/teacherAPI';
 
 // Mock data for select options
 const QUALIFICATIONS = ['B.Ed', 'M.Ed', 'B.Sc', 'M.Sc', 'B.A', 'M.A', 'Ph.D', 'Other'];
@@ -27,7 +29,15 @@ const EditTeacherForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState<{ 
+    open: boolean; 
+    message: string; 
+    severity: AlertColor 
+  }>({ 
+    open: false, 
+    message: '', 
+    severity: 'success' 
+  });
   const [imagePreview, setImagePreview] = useState('');
 
   // Form validation schema
@@ -181,58 +191,76 @@ const EditTeacherForm: React.FC = () => {
             <Typography variant="subtitle1" sx={{ mb: 2 }}>Personal Information</Typography>
             <Divider sx={{ mb: 3 }} />
             
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Full Name"
-                  name="fullName"
-                  value={formik.values.fullName}
-                  onChange={formik.handleChange}
-                  error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-                  helperText={formik.touched.fullName && formik.errors.fullName}
-                  size="small"
-                  margin="normal"
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth size="small" margin="normal">
-                  <InputLabel>Gender</InputLabel>
-                  <Select
-                    name="gender"
-                    value={formik.values.gender}
-                    label="Gender"
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    name="fullName"
+                    value={formik.values.fullName}
                     onChange={formik.handleChange}
-                  >
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+                    error={formik.touched.fullName && Boolean(formik.errors.fullName)}
+                    helperText={formik.touched.fullName && formik.errors.fullName}
+                    size="small"
+                    margin="normal"
+                  />
+                </Box>
+                
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <FormControl fullWidth size="small" margin="normal">
+                    <InputLabel>Gender</InputLabel>
+                    <Select
+                      name="gender"
+                      value={formik.values.gender}
+                      label="Gender"
+                      onChange={formik.handleChange}
+                    >
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
               
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Date of Birth"
-                  value={formik.values.dateOfBirth || null}
-                  onChange={(date) => {
-                    const formattedDate = date ? new Date(date).toISOString().split('T')[0] : '';
-                    formik.setFieldValue('dateOfBirth', formattedDate);
-                  }}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: 'small',
-                      margin: 'normal',
-                      error: formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth),
-                      helperText: formik.touched.dateOfBirth && formik.errors.dateOfBirth,
-                    },
-                  }}
-                />
-              </Grid>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <DatePicker
+                    label="Date of Birth"
+                    value={formik.values.dateOfBirth ? new Date(formik.values.dateOfBirth) : null}
+                    onChange={(date) => {
+                      const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                      formik.setFieldValue('dateOfBirth', formattedDate);
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                        margin: 'normal',
+                        error: formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth),
+                        helperText: formik.touched.dateOfBirth && formik.errors.dateOfBirth,
+                      },
+                    }}
+                  />
+                </Box>
+                
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <TextField
+                    fullWidth
+                    label="Alternate Phone"
+                    name="alternatePhone"
+                    value={formik.values.alternatePhone || ''}
+                    onChange={formik.handleChange}
+                    error={formik.touched.alternatePhone && Boolean(formik.errors.alternatePhone)}
+                    helperText={formik.touched.alternatePhone && formik.errors.alternatePhone}
+                    size="small"
+                    margin="normal"
+                  />
+                </Box>
+              </Box>
               
-              <Grid item xs={12}>
+              <Box>
                 <TextField
                   fullWidth
                   label="Address"
@@ -246,15 +274,15 @@ const EditTeacherForm: React.FC = () => {
                   size="small"
                   margin="normal"
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
             
             {/* Contact Information */}
             <Typography variant="subtitle1" sx={{ mt: 4, mb: 2 }}>Contact Information</Typography>
             <Divider sx={{ mb: 3 }} />
             
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ flex: 1, minWidth: 200 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -267,9 +295,9 @@ const EditTeacherForm: React.FC = () => {
                   size="small"
                   margin="normal"
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} md={6}>
+              <Box sx={{ flex: 1, minWidth: 200 }}>
                 <TextField
                   fullWidth
                   label="Phone"
@@ -281,46 +309,82 @@ const EditTeacherForm: React.FC = () => {
                   size="small"
                   margin="normal"
                 />
-              </Grid>
-            </Grid>
+              </Box>
+              
+              <Box sx={{ flex: 1, minWidth: 200 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      name="isClassTeacher"
+                      checked={formik.values.isClassTeacher}
+                      onChange={formik.handleChange}
+                      color="primary"
+                    />
+                  }
+                  label="Class Teacher"
+                />
+              </Box>
+            </Box>
             
             {/* Academic Information */}
             <Typography variant="subtitle1" sx={{ mt: 4, mb: 2 }}>Academic Information</Typography>
             <Divider sx={{ mb: 3 }} />
             
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth size="small" margin="normal">
-                  <InputLabel>Qualification</InputLabel>
-                  <Select
-                    name="qualification"
-                    value={formik.values.qualification}
-                    label="Qualification"
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <FormControl fullWidth size="small" margin="normal">
+                    <InputLabel>Qualification</InputLabel>
+                    <Select
+                      name="qualification"
+                      value={formik.values.qualification}
+                      label="Qualification"
+                      onChange={formik.handleChange}
+                    >
+                      {QUALIFICATIONS.map((qual) => (
+                        <MenuItem key={qual} value={qual}>{qual}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+                
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <TextField
+                    fullWidth
+                    label="Experience (Years)"
+                    name="experience"
+                    type="number"
+                    value={formik.values.experience}
                     onChange={formik.handleChange}
-                  >
-                    {QUALIFICATIONS.map((qual) => (
-                      <MenuItem key={qual} value={qual}>{qual}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                    error={formik.touched.experience && Boolean(formik.errors.experience)}
+                    helperText={formik.touched.experience && formik.errors.experience}
+                    size="small"
+                    margin="normal"
+                  />
+                </Box>
+                
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <DatePicker
+                    label="Joining Date"
+                    value={formik.values.joiningDate ? new Date(formik.values.joiningDate) : null}
+                    onChange={(date) => {
+                      const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                      formik.setFieldValue('joiningDate', formattedDate);
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                        margin: 'normal',
+                        error: formik.touched.joiningDate && Boolean(formik.errors.joiningDate),
+                        helperText: formik.touched.joiningDate && formik.errors.joiningDate,
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
               
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Experience (Years)"
-                  name="experience"
-                  type="number"
-                  value={formik.values.experience}
-                  onChange={formik.handleChange}
-                  error={formik.touched.experience && Boolean(formik.errors.experience)}
-                  helperText={formik.touched.experience && formik.errors.experience}
-                  size="small"
-                  margin="normal"
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
+              <Box>
                 <FormControl fullWidth size="small" margin="normal">
                   <InputLabel>Specialization</InputLabel>
                   <Select
@@ -337,12 +401,55 @@ const EditTeacherForm: React.FC = () => {
                     )}
                   >
                     {SUBJECTS.map((subject) => (
-                      <MenuItem key={subject} value={subject}>{subject}</MenuItem>
+                      <MenuItem key={subject} value={subject}>
+                        <Checkbox checked={formik.values.specialization.includes(subject)} />
+                        {subject}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-            </Grid>
+              </Box>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      name="transportAssigned"
+                      checked={formik.values.transportAssigned}
+                      onChange={formik.handleChange}
+                      color="primary"
+                    />
+                  }
+                  label="Transport Assigned"
+                />
+                
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      name="hostelAssigned"
+                      checked={formik.values.hostelAssigned}
+                      onChange={formik.handleChange}
+                      color="primary"
+                    />
+                  }
+                  label="Hostel Assigned"
+                />
+                
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      name="status"
+                      checked={formik.values.status === 'Active'}
+                      onChange={(e) => {
+                        formik.setFieldValue('status', e.target.checked ? 'Active' : 'Inactive');
+                      }}
+                      color="primary"
+                    />
+                  }
+                  label="Active Status"
+                />
+              </Box>
+            </Box>
             
             {/* Form Actions */}
             <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>

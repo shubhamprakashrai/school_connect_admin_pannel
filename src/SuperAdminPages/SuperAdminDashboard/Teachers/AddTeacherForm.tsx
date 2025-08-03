@@ -608,6 +608,7 @@ const AddTeacherForm: React.FC = () => {
                     />
                   </Box>
                 </Box>
+              </Box>
             </Box>
             
             {/* Documents Section */}
