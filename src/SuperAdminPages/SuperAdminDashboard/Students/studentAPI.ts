@@ -173,10 +173,15 @@ export const studentAPI = {
   },
 
   // Delete a student
-  deleteStudent: async (id: string): Promise<{ success: boolean }> => {
+  deleteStudent: async (id: string, deletionReason?: string): Promise<{ success: boolean }> => {
     await delay(300);
     const index = mockStudents.findIndex(s => s.id === id);
     if (index === -1) throw new Error('Student not found');
+    
+    // In a real implementation, you might want to log the deletion reason
+    if (deletionReason) {
+      console.log(`Deletion reason for student ${id}: ${deletionReason}`);
+    }
     
     mockStudents.splice(index, 1);
     return { success: true };

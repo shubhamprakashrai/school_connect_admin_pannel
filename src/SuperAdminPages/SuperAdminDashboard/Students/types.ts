@@ -13,7 +13,13 @@ export interface Student {
   parentEmail?: string;
   admissionDate: string;
   address: string;
-  status: 'Active' | 'Inactive';
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  status: 'Active' | 'Inactive' | '';
   transportOpted: boolean;
   hostelOpted: boolean;
   tags?: string[];
