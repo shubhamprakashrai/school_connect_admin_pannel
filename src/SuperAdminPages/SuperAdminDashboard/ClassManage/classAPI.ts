@@ -1,23 +1,151 @@
-// export interface Teacher {
-//   id: string;
-//   name: string;
-//   email: string;
-// }
+// Mock data for teachers
+const mockTeachers = [
+  { id: 't1', name: 'John Doe', email: 'john@example.com' },
+  { id: 't2', name: 'Jane Smith', email: 'jane@example.com' },
+  { id: 't3', name: 'Robert Johnson', email: 'robert@example.com' },
+];
 
-// export interface ClassData {
-//   id: string;
-//   className: string;
-//   status: 'Active' | 'Inactive';
-//   createdAt: string;
-//   updatedAt: string;
-//   sections: Array<{
-//     id: string;
-//     name: string;
-//     studentCount: number;
-//     classTeacher?: Teacher;
-//     maxStudents?: number;
-//   }>;
-// }
+// Mock data for classes
+let mockClasses: Array<{
+  id: string;
+  className: string;
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+  updatedAt: string;
+  sections: Array<{
+    id: string;
+    name: string;
+    studentCount: number;
+    classTeacherId: string;
+    maxStudents: number;
+  }>;
+}> = [
+  {
+    id: '1',
+    className: 'Class 1',
+    status: 'Active',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z',
+    sections: [
+      { id: 's1', name: 'A', studentCount: 25, classTeacherId: 't1', maxStudents: 30 },
+      { id: 's2', name: 'B', studentCount: 20, classTeacherId: 't2', maxStudents: 30 },
+    ],
+  },
+  {
+    id: '2',
+    className: 'Class 2',
+    status: 'Active',
+    createdAt: '2023-01-02T00:00:00Z',
+    updatedAt: '2023-01-02T00:00:00Z',
+    sections: [
+      { id: 's3', name: 'A', studentCount: 28, classTeacherId: 't3', maxStudents: 35 },
+    ],
+  },
+];
+
+export interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface Section {
+  id: string;
+  name: string;
+  studentCount: number;
+  classTeacherId: string;
+  maxStudents: number;
+  classTeacher?: Teacher;
+}
+
+export interface ClassData {
+  id: string;
+  className: string;
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+  updatedAt: string;
+  sections: Section[];
+}
+
+// Simulate network delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Fetches all classes with their sections and teachers
+ */
+export const fetchClasses = async (): Promise<ClassData[]> => {
+  await delay(500); // Simulate network delay
+  
+  // Map classTeacherId to actual teacher data
+  return mockClasses.map(cls => ({
+    ...cls,
+    sections: cls.sections.map(section => ({
+      ...section,
+      classTeacher: mockTeachers.find(t => t.id === section.classTeacherId)
+    }))
+  }));
+};
+
+/**
+ * Creates a new class
+ */
+export const createClass = async (classData: Omit<ClassData, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClassData> => {
+  await delay(500); // Simulate network delay
+  
+  const newClass = {
+    ...classData,
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  
+  mockClasses.push(newClass);
+  return newClass;
+};
+
+/**
+ * Updates an existing class
+ */
+export const updateClass = async (id: string, classData: Partial<ClassData>): Promise<ClassData> => {
+  await delay(500); // Simulate network delay
+  
+  const index = mockClasses.findIndex(c => c.id === id);
+  if (index === -1) {
+    throw new Error('Class not found');
+  }
+  
+  const updatedClass = {
+    ...mockClasses[index],
+    ...classData,
+    updatedAt: new Date().toISOString(),
+  };
+  
+  mockClasses[index] = updatedClass;
+  return updatedClass;
+};
+
+/**
+ * Deletes a class
+ */
+export const deleteClass = async (id: string): Promise<void> => {
+  await delay(500); // Simulate network delay
+  
+  const index = mockClasses.findIndex(c => c.id === id);
+  if (index === -1) {
+    throw new Error('Class not found');
+  }
+  
+  mockClasses = mockClasses.filter(c => c.id !== id);
+};
+
+const classAPI = {
+  fetchClasses,
+  createClass,
+  updateClass,
+  deleteClass,
+};
+
+export default classAPI;
 
 // export interface ClassFormData {
 //   className: string;

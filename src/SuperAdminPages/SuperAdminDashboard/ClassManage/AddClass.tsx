@@ -260,10 +260,15 @@ const AddClass: React.FC = () => {
     const newSections = [...formik.values.sections];
     const newSection = { ...newSections[index] };
     
-    if (field === 'maxStudents' && typeof value === 'string') {
-      newSection[field] = value ? parseInt(value, 10) : undefined;
+    if (field === 'maxStudents') {
+      // For maxStudents, we expect a number or undefined
+      newSection[field] = value === '' || value === undefined ? undefined : Number(value);
+    } else if (field === 'classTeacherId') {
+      // For classTeacherId, we expect a string or undefined
+      newSection[field] = value as string | undefined;
     } else {
-      // newSection[field] = value || '';
+      // For name field
+      newSection[field] = value as string;
     }
     
     newSections[index] = newSection;
@@ -274,13 +279,13 @@ const AddClass: React.FC = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  if (loading && teachers.length === 0) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // if (loading && teachers.length === 0) {
+  //   return (
+  //     <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+  //       <CircularProgress />
+  //     </Box>
+  //   );
+  // }
 
   // Get teacher name by ID
   const getTeacherName = (id: string) => {
@@ -598,10 +603,10 @@ const AddClass: React.FC = () => {
                   variant="contained"
                   color="primary"
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : null}
+                  // startIcon={loading ? <CircularProgress size={20} /> : null}
                   fullWidth={isMobile}
                 >
-                  {loading ? 'Creating...' : 'Create Class'}
+                  {'Create Class'}
                 </Button>
               </Box>
             </Box>

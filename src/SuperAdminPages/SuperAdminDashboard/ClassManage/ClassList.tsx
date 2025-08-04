@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
-  Chip, TablePagination, Typography, Tooltip, CircularProgress
+  Chip, TablePagination, Typography, Tooltip
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Visibility as ViewIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { classAPI } from './classAPI';
-import { ClassData } from './types';
+import classAPI, { Teacher } from './classAPI';
+import { ClassData, ClassSection } from './types';
 
 const ClassList: React.FC = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState<ClassData[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [filters, setFilters] = useState<{
@@ -26,29 +27,115 @@ const ClassList: React.FC = () => {
   });
   const [teachers, setTeachers] = useState<{id: string; name: string}[]>([]);
 
-  // Fetch classes and teachers
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [classesData, teachersData] = await Promise.all([
-          classAPI.getClasses({
-            status: filters.status as any,
-            classTeacherId: filters.classTeacherId,
-            searchQuery: filters.searchQuery
-          }),
-          classAPI.getTeachers()
-        ]);
-        setClasses(classesData);
-        setTeachers(teachersData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Sample static data for classes with all required fields
+  const sampleClasses: ClassData[] = [
+    {
+      id: '1',
+      className: 'Class 1',
+      status: 'Active',
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2023-01-01T00:00:00.000Z',
+      sections: [
+        {
+          id: 'sec1',
+          name: 'A',
+          classTeacher: { id: 't1', name: 'John Doe' },
+          studentCount: 25,
+          maxStudents: 30
+        },
+        {
+          id: 'sec2',
+          name: 'B',
+          classTeacher: { id: 't2', name: 'Jane Smith' },
+          studentCount: 22,
+          maxStudents: 30
+        }
+      ]
+    },
+    {
+      id: '2',
+      className: 'Class 2',
+      status: 'Active',
+      createdAt: '2023-01-15T00:00:00.000Z',
+      updatedAt: '2023-01-15T00:00:00.000Z',
+      sections: [
+        {
+          id: 'sec3',
+          name: 'A',
+          classTeacher: { id: 't3', name: 'Robert Johnson' },
+          studentCount: 28,
+          maxStudents: 35
+        }
+      ]
+    },
+    {
+      id: '3',
+      className: 'Class 3',
+      status: 'Inactive',
+      createdAt: '2023-02-01T00:00:00.000Z',
+      updatedAt: '2023-02-15T00:00:00.000Z',
+      sections: [
+        {
+          id: 'sec4',
+          name: 'A',
+          classTeacher: { id: 't4', name: 'Emily Davis' },
+          studentCount: 20,
+          maxStudents: 25
+        },
+        {
+          id: 'sec5',
+          name: 'B',
+          classTeacher: { id: 't5', name: 'Michael Brown' },
+          studentCount: 18,
+          maxStudents: 25
+        }
+      ]
+    }
+  ];
 
-    fetchData();
+  // Extract unique teachers from the sample data
+  const sampleTeachers = Array.from(
+    new Map(
+      sampleClasses
+        .flatMap(cls => 
+          cls.sections
+            .filter((section): section is ClassSection & { classTeacher: Teacher } => 
+              Boolean(section.classTeacher)
+            )
+            .map(section => [section.classTeacher.id, section.classTeacher] as const)
+        )
+    ).values()
+  );
+
+  // Set initial data
+  useEffect(() => {
+    setClasses(sampleClasses);
+    setTeachers(sampleTeachers);
+  }, []);
+
+  // Apply filters
+  useEffect(() => {
+    let filteredClasses = [...sampleClasses];
+    
+    if (filters.status) {
+      filteredClasses = filteredClasses.filter(cls => cls.status === filters.status);
+    }
+    
+    if (filters.classTeacherId) {
+      filteredClasses = filteredClasses.filter(cls => 
+        cls.sections.some(section => section.classTeacher?.id === filters.classTeacherId)
+      );
+    }
+    
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      filteredClasses = filteredClasses.filter(cls => 
+        cls.className.toLowerCase().includes(query) ||
+        cls.sections.some(section => section.name.toLowerCase().includes(query))
+      );
+    }
+    
+    setClasses(filteredClasses);
   }, [filters]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -60,7 +147,7 @@ const ClassList: React.FC = () => {
     setPage(0);
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  const handleFilterChange = (e: SelectChangeEvent<unknown>) => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
@@ -165,13 +252,7 @@ const ClassList: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : classes.length === 0 ? (
+              {classes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                     No classes found

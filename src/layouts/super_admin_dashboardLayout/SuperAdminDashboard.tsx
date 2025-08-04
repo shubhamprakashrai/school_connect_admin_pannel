@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Drawer from './Drawer';
 import AddSchoolForm from '../../SuperAdminPages/SuperAdminDashboard/AddSchoolForm';
+import ClassList from '../../SuperAdminPages/SuperAdminDashboard/ClassManage/ClassList';
+import AddClass from '../../SuperAdminPages/SuperAdminDashboard/ClassManage/AddClass';
 
 interface SuperAdminDashboardProps {
   onLogout: () => void;
@@ -90,6 +92,16 @@ const SuperAdminDashboard = ({ onLogout }: SuperAdminDashboardProps) => {
                 <p>Configure system settings.</p>
               </div>
             } />
+            <Route path="classes">
+              <Route index element={<ClassList />} />
+              <Route path="add" element={<AddClass />} />
+              <Route path="schedule" element={
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h1 className="text-2xl font-bold mb-4">Class Schedule</h1>
+                  <p>Manage class schedules here.</p>
+                </div>
+              } />
+            </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
