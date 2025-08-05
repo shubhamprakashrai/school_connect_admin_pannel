@@ -6,7 +6,10 @@ import {
   Paper, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   Chip, TablePagination, Typography, Tooltip
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Visibility as ViewIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import ViewIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 import classAPI, { Teacher } from './classAPI';
 import { ClassData, ClassSection } from './types';
 
@@ -174,6 +177,22 @@ const ClassList: React.FC = () => {
       }
     }
   };
+  const handleSectionDelete = (classId: string, sectionId: string) => {
+    if (!window.confirm('Are you sure you want to delete this section?')) return;
+  
+    setClasses(prev =>
+      prev.map(cls =>
+        cls.id === classId
+          ? {
+              ...cls,
+              sections: cls.sections.filter(section => section.id !== sectionId)
+            }
+          : cls
+      )
+    );
+  };
+  
+  
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - classes.length) : 0;
@@ -302,15 +321,7 @@ const ClassList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          {cls.sections.map(section => (
-                            <Chip
-                              key={section.id}
-                              label={`${section.studentCount || 0} students`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ mb: 0.5 }}
-                            />
-                          ))}
+                          
                         </Box>
                       </TableCell>
                       <TableCell>
