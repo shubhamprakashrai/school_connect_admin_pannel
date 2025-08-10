@@ -27,6 +27,11 @@ import SubjectListPage from './SuperAdminPages/SuperAdminDashboard/SubjectManage
 import AddSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/AddSubjectPage';
 import EditSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/EditSubjectPage';
 
+// Notice Management
+import NoticeListPage from './SuperAdminPages/SuperAdminDashboard/NoticeManagement/pages/NoticeListPage';
+import AddNoticePage from './SuperAdminPages/SuperAdminDashboard/NoticeManagement/pages/AddNoticePage';
+import EditNoticePage from './SuperAdminPages/SuperAdminDashboard/NoticeManagement/pages/EditNoticePage';
+
 // Error Boundary Component
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -178,6 +183,11 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
               <Route index element={<SubjectListPage />} />
               <Route path="add" element={<AddSubjectPage />} />
               <Route path="edit/:id" element={<EditSubjectPage />} />
+            </Route>
+            <Route path="notices">
+              <Route index element={<NoticeListPage />} />
+              <Route path="add" element={<AddNoticePage />} />
+              <Route path="edit/:id" element={<EditNoticePage />} />
             </Route>
             <Route path="users" element={<div className="bg-white p-6 rounded-lg shadow-sm">
               <h1 className="text-2xl font-bold mb-4">Users Management</h1>
