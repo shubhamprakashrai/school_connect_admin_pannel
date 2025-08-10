@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, UserPlus, BookOpen, BookOpenText, Bell } from 'lucide-react';
+import { LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, UserPlus, BookOpen, BookOpenText, Bell, CalendarCheck } from 'lucide-react';
 
 interface DrawerProps {
   isOpen: boolean;
@@ -93,6 +93,21 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { 
           label: 'Class Schedule', 
           path: '/dashboard/classes/schedule' 
+        }
+      ]
+    },
+    { 
+      key: 'attendance',
+      icon: <CalendarCheck className="w-5 h-5" />, 
+      label: 'Attendance',
+      children: [
+        { 
+          label: 'Mark Attendance', 
+          path: '/dashboard/attendance/mark' 
+        },
+        { 
+          label: 'View Attendance', 
+          path: '/dashboard/attendance' 
         }
       ]
     },
