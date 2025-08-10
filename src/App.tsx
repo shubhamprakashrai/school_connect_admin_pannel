@@ -23,6 +23,9 @@ import AddTeacherForm from './SuperAdminPages/SuperAdminDashboard/Teachers/AddTe
 import AddClass from './SuperAdminPages/SuperAdminDashboard/ClassManage/AddClass';
 import ClassSchedule from './SuperAdminPages/SuperAdminDashboard/ClassManage/ClassSchedule';
 import ClassList from './SuperAdminPages/SuperAdminDashboard/ClassManage/ClassList';
+import SubjectListPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/SubjectListPage';
+import AddSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/AddSubjectPage';
+import EditSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/EditSubjectPage';
 
 // Error Boundary Component
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -169,7 +172,12 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
             <Route path="classes">
               <Route index element={<ClassList />} />
               <Route path="add" element={<AddClass/>} />
-             <Route path="schedule" element={<ClassSchedule />} />
+              <Route path="schedule" element={<ClassSchedule />} />
+            </Route>
+            <Route path="subjects">
+              <Route index element={<SubjectListPage />} />
+              <Route path="add" element={<AddSubjectPage />} />
+              <Route path="edit/:id" element={<EditSubjectPage />} />
             </Route>
             <Route path="users" element={<div className="bg-white p-6 rounded-lg shadow-sm">
               <h1 className="text-2xl font-bold mb-4">Users Management</h1>

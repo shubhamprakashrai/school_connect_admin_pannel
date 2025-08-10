@@ -18,7 +18,9 @@
     "@mui/x-date-pickers": "^8.9.2",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-slick": "^0.23.13",
+    "@types/uuid": "^10.0.0",
     "@types/yup": "^0.29.14",
+    "antd": "^5.26.7",
     "date-fns": "^4.1.0",
     "formik": "^2.4.6",
     "framer-motion": "^12.23.9",
@@ -28,6 +30,7 @@
     "react-router-dom": "^7.7.1",
     "react-slick": "^0.30.3",
     "slick-carousel": "^1.8.1",
+    "uuid": "^11.1.0",
     "yup": "^1.7.0"
   },
   "devDependencies": {
