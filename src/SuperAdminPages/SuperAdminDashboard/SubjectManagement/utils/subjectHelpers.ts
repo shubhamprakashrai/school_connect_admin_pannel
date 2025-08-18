@@ -33,18 +33,35 @@ export const sortSubjects = (
 ): Subject[] => {
   return [...subjects].sort((a, b) => {
     let comparison = 0;
+    const valueA = a[sortBy];
+    const valueB = b[sortBy];
     
     // Handle undefined or null values
-    if (a[sortBy] === undefined || a[sortBy] === null) return 1;
-    if (b[sortBy] === undefined || b[sortBy] === null) return -1;
+    if (valueA === undefined || valueA === null) return 1;
+    if (valueB === undefined || valueB === null) return -1;
     
-    // Compare based on type
-    if (typeof a[sortBy] === 'string' && typeof b[sortBy] === 'string') {
-      comparison = (a[sortBy] as string).localeCompare(b[sortBy] as string);
-    } else if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
-      comparison = (a[sortBy] as number) - (b[sortBy] as number);
-    } else if (a[sortBy] instanceof Date && b[sortBy] instanceof Date) {
-      comparison = (a[sortBy] as Date).getTime() - (b[sortBy] as Date).getTime();
+    // Handle string comparison
+    if (typeof valueA === 'string' && typeof valueB === 'string') {
+      // Handle date strings (like createdAt, updatedAt)
+      if (['createdAt', 'updatedAt'].includes(sortBy)) {
+        const dateA = new Date(valueA).getTime();
+        const dateB = new Date(valueB).getTime();
+        comparison = dateA - dateB;
+      } else {
+        comparison = valueA.localeCompare(valueB);
+      }
+    } 
+    // Handle number comparison
+    else if (typeof valueA === 'number' && typeof valueB === 'number') {
+      comparison = valueA - valueB;
+    } 
+    // Handle Date objects
+    else if (valueA && valueB && 
+             typeof valueA === 'object' && 
+             typeof valueB === 'object' &&
+             'getTime' in valueA && 
+             'getTime' in valueB) {
+      comparison = (valueA as Date).getTime() - (valueB as Date).getTime();
     }
     
     return sortOrder === 'asc' ? comparison : -comparison;

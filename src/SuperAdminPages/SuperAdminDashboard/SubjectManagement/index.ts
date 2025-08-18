@@ -16,8 +16,7 @@ export type { Subject, SubjectStatus, SubjectType } from './types/subject.d';
 export {
   filterSubjects,
   sortSubjects,
-  getStatusBadgeClass,
-  getTypeBadgeClass,
+ 
 } from './utils/subjectHelpers';
 
 // Data

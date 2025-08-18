@@ -27,6 +27,11 @@ import SubjectListPage from './SuperAdminPages/SuperAdminDashboard/SubjectManage
 import AddSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/AddSubjectPage';
 import EditSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/EditSubjectPage';
 
+// Exam Management
+import { ExamListPage } from './SuperAdminPages/SuperAdminDashboard/ExamManagement/pages/ExamListPage';
+import { ScheduleExamPage } from './SuperAdminPages/SuperAdminDashboard/ExamManagement/pages/ScheduleExamPage';
+import { ExamResultsPage } from './SuperAdminPages/SuperAdminDashboard/ExamManagement/pages/ExamResultsPage';
+
 // Notice Management
 import NoticeListPage from './SuperAdminPages/SuperAdminDashboard/NoticeManagement/pages/NoticeListPage';
 import AddNoticePage from './SuperAdminPages/SuperAdminDashboard/NoticeManagement/pages/AddNoticePage';
@@ -207,6 +212,11 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
               <h1 className="text-2xl font-bold mb-4">Users Management</h1>
               <p>Manage all users in the system.</p>
             </div>} />
+            <Route path="exams">
+              <Route index element={<ExamListPage />} />
+              <Route path="schedule" element={<ScheduleExamPage />} />
+              <Route path="results" element={<ExamResultsPage />} />
+            </Route>
             <Route path="settings" element={<div className="bg-white p-6 rounded-lg shadow-sm">
               <h1 className="text-2xl font-bold mb-4">Settings</h1>
               <p>Configure system settings.</p>
