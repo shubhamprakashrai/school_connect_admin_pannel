@@ -6,7 +6,6 @@ class ApiService {
   private api: AxiosInstance;
   private retryCount: number = 0;
   private maxRetries: number = 1;
-
   constructor() {
     this.api = axios.create({
       baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api',
@@ -15,7 +14,6 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     });
-
     this.setupInterceptors();
   }
 
@@ -52,7 +50,6 @@ class ApiService {
           window.location.href = '/login';
           return Promise.reject(error);
         }
-
         // Handle network errors with retry logic
         if (error.code === 'ECONNABORTED' || !error.response) {
           if (this.retryCount < (originalRequest?._retryCount || this.maxRetries)) {
