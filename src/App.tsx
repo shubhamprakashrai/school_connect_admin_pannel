@@ -14,15 +14,28 @@ import FAQ from './components/FAQ';
 import Footer from './components/Footer';
 import LoginModal from './components/LoginModal';
 import Drawer from './layouts/super_admin_dashboardLayout/Drawer';
+
+// Dashboard
+import { Dashboard } from './SuperAdminPages/SuperAdminDashboard/dashboard/Dashboard';
+
+// School Management
 import AddSchoolForm from './SuperAdminPages/SuperAdminDashboard/AddSchoolForm';
 import SchoolList from './SuperAdminPages/SuperAdminDashboard/SchoolList/SchoolList';
+
+// Student Management
 import StudentList from './SuperAdminPages/SuperAdminDashboard/Students/StudentList';
 import AddStudentForm from './SuperAdminPages/SuperAdminDashboard/Students/AddStudentForm';
+
+// Teacher Management
 import TeacherList from './SuperAdminPages/SuperAdminDashboard/Teachers/TeacherList';
 import AddTeacherForm from './SuperAdminPages/SuperAdminDashboard/Teachers/AddTeacherForm';
+
+// Class Management
 import AddClass from './SuperAdminPages/SuperAdminDashboard/ClassManage/AddClass';
 import ClassSchedule from './SuperAdminPages/SuperAdminDashboard/ClassManage/ClassSchedule';
 import ClassList from './SuperAdminPages/SuperAdminDashboard/ClassManage/ClassList';
+
+// Subject Management
 import SubjectListPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/SubjectListPage';
 import AddSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/AddSubjectPage';
 import EditSubjectPage from './SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/EditSubjectPage';
@@ -171,10 +184,7 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
           <Routes>
-            <Route index element={<div className="bg-white p-6 rounded-lg shadow-sm">
-              <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-              <p>Welcome to the admin dashboard. Use the sidebar to navigate.</p>
-            </div>} />
+            <Route index element={<Dashboard />} />
             <Route path="schools">
               <Route index element={<SchoolList />} />
               <Route path="add" element={<AddSchoolForm />} />

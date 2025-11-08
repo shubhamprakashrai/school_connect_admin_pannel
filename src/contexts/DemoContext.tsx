@@ -12,7 +12,7 @@ const DemoContext = createContext<DemoContextType | undefined>(undefined);
 export const DemoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDemoRequested, setIsDemoRequested] = useState(false);
   const [selectedDemo, setSelectedDemo] = useState('');
-
+  
   const requestDemo = (demoName: string = '') => {
     setSelectedDemo(demoName);
     setIsDemoRequested(true);
