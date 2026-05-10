@@ -1,0 +1,121 @@
+/**
+ * Translation dictionaries.
+ * Add new strings as nested keys. Both languages must keep the same shape —
+ * `t('foo.bar')` falls back to the English key text if Hindi is missing.
+ */
+
+export const translations = {
+  en: {
+    common: {
+      loading: 'Loading…',
+      save: 'Save',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      edit: 'Edit',
+      view: 'View',
+      back: 'Back',
+      retry: 'Try again',
+      search: 'Search…',
+      noResults: 'No results',
+      yes: 'Yes',
+      no: 'No',
+    },
+    nav: {
+      dashboard: 'Dashboard',
+      schools: 'Schools',
+      students: 'Students',
+      teachers: 'Teachers',
+      classes: 'Classes',
+      subjects: 'Subjects',
+      attendance: 'Attendance',
+      calendar: 'Calendar',
+      academicYears: 'Academic years',
+      settings: 'Settings',
+      logout: 'Logout',
+    },
+    auth: {
+      welcomeBack: 'Welcome back',
+      signInSubtitle: 'Sign in to continue to your dashboard',
+      emailOrPhone: 'Email or 10-digit phone',
+      password: 'Password',
+      forgot: 'Forgot password?',
+      rememberMe: 'Remember me',
+      signIn: 'Sign In',
+      signingIn: 'Signing in…',
+    },
+    dashboard: {
+      goodMorning: 'Good morning',
+      goodAfternoon: 'Good afternoon',
+      goodEvening: 'Good evening',
+      whatsHappening: "Here's what's happening in your school today.",
+      addStudent: 'Add student',
+      markAttendance: 'Mark attendance',
+      bulkImport: 'Bulk import',
+    },
+    students: {
+      title: 'Students',
+      addStudent: 'Add student',
+      bulkImport: 'Bulk import',
+      noStudents: 'No students match these filters',
+      enrollFirst: 'Try widening the filters or enroll your first student.',
+    },
+  },
+  hi: {
+    common: {
+      loading: 'लोड हो रहा है…',
+      save: 'सहेजें',
+      cancel: 'रद्द करें',
+      delete: 'हटाएँ',
+      edit: 'संपादित',
+      view: 'देखें',
+      back: 'वापस',
+      retry: 'फिर प्रयास करें',
+      search: 'खोजें…',
+      noResults: 'कोई परिणाम नहीं',
+      yes: 'हाँ',
+      no: 'नहीं',
+    },
+    nav: {
+      dashboard: 'डैशबोर्ड',
+      schools: 'स्कूल',
+      students: 'छात्र',
+      teachers: 'शिक्षक',
+      classes: 'कक्षाएँ',
+      subjects: 'विषय',
+      attendance: 'उपस्थिति',
+      calendar: 'कैलेंडर',
+      academicYears: 'शैक्षणिक वर्ष',
+      settings: 'सेटिंग्स',
+      logout: 'लॉगआउट',
+    },
+    auth: {
+      welcomeBack: 'वापस स्वागत है',
+      signInSubtitle: 'अपने डैशबोर्ड पर जारी रखने के लिए साइन इन करें',
+      emailOrPhone: 'ईमेल या 10-अंकीय फ़ोन',
+      password: 'पासवर्ड',
+      forgot: 'पासवर्ड भूल गए?',
+      rememberMe: 'मुझे याद रखें',
+      signIn: 'साइन इन',
+      signingIn: 'साइन इन हो रहा है…',
+    },
+    dashboard: {
+      goodMorning: 'सुप्रभात',
+      goodAfternoon: 'नमस्कार',
+      goodEvening: 'शुभ संध्या',
+      whatsHappening: 'आज आपके स्कूल में क्या हो रहा है।',
+      addStudent: 'छात्र जोड़ें',
+      markAttendance: 'उपस्थिति दर्ज करें',
+      bulkImport: 'बल्क इम्पोर्ट',
+    },
+    students: {
+      title: 'छात्र',
+      addStudent: 'छात्र जोड़ें',
+      bulkImport: 'बल्क इम्पोर्ट',
+      noStudents: 'इन फ़िल्टरों से मेल खाते कोई छात्र नहीं',
+      enrollFirst: 'फ़िल्टर बदलें या अपना पहला छात्र जोड़ें।',
+    },
+  },
+} as const;
+
+export type Locale = keyof typeof translations;
+export type Dictionary = typeof translations.en;

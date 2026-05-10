@@ -1,236 +1,169 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box, Typography, Paper, Divider, Button, Grid, Card, CardContent,
-  Chip, Avatar, List, ListItem, ListItemText, ListItemAvatar, CircularProgress
-} from '@mui/material';
-import { Edit as EditIcon, ArrowBack as ArrowBackIcon, People as PeopleIcon } from '@mui/icons-material';
-import { classAPI } from './classAPI';
-import { ClassData } from './types';
+/** View Class — read-only detail with sections + add/remove section inline. */
 
-const ViewClass: React.FC = () => {
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import {
+  Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  Grid, IconButton, Paper, Stack, TextField, Tooltip, Typography,
+} from '@mui/material';
+import {
+  Add, ArrowBack, Class as ClassIcon, Delete, Edit, Group, Person,
+} from '@mui/icons-material';
+import schoolClassService, { sectionService } from '../../../services/schoolClass.service';
+import type { SchoolClassResponse, SectionResponse } from '../../../types/schoolClass';
+
+export default function ViewClass() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [classData, setClassData] = useState<ClassData | null>(null);
+  const [cls, setCls] = useState<SchoolClassResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchClassData = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        const data = await classAPI.getClassById(id);
-        if (data) {
-          setClassData(data);
-        } else {
-          setError('Class not found');
-        }
-      } catch (err) {
-        console.error('Error fetching class data:', err);
-        setError('Failed to load class data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Add-section dialog
+  const [openSection, setOpenSection] = useState(false);
+  const [sectionName, setSectionName] = useState('');
+  const [sectionCapacity, setSectionCapacity] = useState<number>(40);
+  const [savingSection, setSavingSection] = useState(false);
 
-    fetchClassData();
-  }, [id]);
+  const reload = () => {
+    if (!id) return;
+    setLoading(true);
+    schoolClassService.getById(id)
+      .then(setCls)
+      .catch((err) => toast.error(err.message || 'Failed to load class'))
+      .finally(() => setLoading(false));
+  };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  useEffect(reload, [id]);
 
-  if (error || !classData) {
-    return (
-      <Box p={3} textAlign="center">
-        <Typography color="error" gutterBottom>{error || 'Class not found'}</Typography>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/dashboard/classes')}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-        >
-          Back to Classes
-        </Button>
-      </Box>
-    );
+  const addSection = async () => {
+    if (!id || !sectionName.trim()) { toast.error('Section name is required'); return; }
+    setSavingSection(true);
+    try {
+      await sectionService.create({
+        name: sectionName.trim().toUpperCase(),
+        capacity: sectionCapacity,
+        schoolClassId: id,
+      });
+      toast.success('Section added');
+      setOpenSection(false);
+      setSectionName('');
+      setSectionCapacity(40);
+      reload();
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Add failed');
+    } finally {
+      setSavingSection(false);
+    }
+  };
+
+  const removeSection = async (s: SectionResponse) => {
+    if (!window.confirm(`Delete section ${s.name}? Students in this section may be affected.`)) return;
+    try {
+      await sectionService.remove(s.id);
+      toast.success('Section deleted');
+      reload();
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Delete failed');
+    }
+  };
+
+  if (loading || !cls) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-        <IconButton onClick={() => navigate('/dashboard/classes')}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1">
-          {classData.className} - Class Details
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => navigate(`/dashboard/classes/edit/${classData.id}`)}
-        >
-          Edit Class
-        </Button>
-      </Box>
+    <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/classes')}>Back</Button>
+        <Box sx={{ flex: 1 }} />
+        <Button startIcon={<Edit />} variant="outlined"
+          onClick={() => navigate(`/dashboard/classes/${cls.id}/edit`)}>Edit</Button>
+      </Stack>
 
-      <Grid container spacing={3}>
-        {/* Class Overview */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Class Overview</Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Class Name"
-                    secondary={classData.className}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Status"
-                    secondary={
-                      <Chip
-                        label={classData.status}
-                        color={classData.status === 'Active' ? 'success' : 'default'}
-                        size="small"
-                        variant="outlined"
-                      />
-                    }
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Total Sections"
-                    secondary={classData.sections.length}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Total Students"
-                    secondary={classData.sections.reduce((sum, section) => sum + (section.studentCount || 0), 0)}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Created On"
-                    secondary={new Date(classData.createdAt).toLocaleDateString()}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Last Updated"
-                    secondary={new Date(classData.updatedAt).toLocaleDateString()}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Sections */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Sections</Typography>
-              </Box>
-              <Divider sx={{ mb: 3 }} />
-              
-              <Grid container spacing={2}>
-                {classData.sections.map((section, index) => (
-                  <Grid item xs={12} sm={6} key={section.id}>
-                    <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="subtitle1">
-                          Section {section.name}
-                        </Typography>
-                        <Chip
-                          label={`${section.studentCount || 0} students`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                      </Box>
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      <List dense>
-                        <ListItem>
-                          <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                              <PeopleIcon fontSize="small" />
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary="Class Teacher"
-                            secondary={section.classTeacher?.name || 'Not assigned'}
-                            secondaryTypographyProps={{
-                              color: section.classTeacher ? 'text.primary' : 'text.secondary',
-                              fontWeight: section.classTeacher ? 500 : 'normal'
-                            }}
-                          />
-                        </ListItem>
-                        
-                        <ListItem>
-                          <ListItemText
-                            primary="Max Students"
-                            secondary={section.maxStudents ? section.maxStudents : 'No limit'}
-                          />
-                        </ListItem>
-                        
-                        <ListItem sx={{ pt: 2, pb: 0 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            fullWidth
-                            onClick={() => navigate(`/dashboard/classes/${classData.id}/section/${section.id}/students`)}
-                          >
-                            View Students
-                          </Button>
-                        </ListItem>
-                      </List>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
-          
-          {/* Future Features Placeholder */}
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Subjects (Coming Soon)</Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Typography color="textSecondary" variant="body2">
-                Subject management for this class will be available in a future update.
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box sx={{
+            width: 56, height: 56, borderRadius: 2, color: 'white',
+            background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ClassIcon />
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{cls.name}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+              {cls.code}
+            </Typography>
+            {cls.description && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {cls.description}
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-      
-      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/dashboard/classes')}
-          startIcon={<ArrowBackIcon />}
-        >
-          Back to Classes
-        </Button>
+            )}
+          </Box>
+        </Stack>
+      </Paper>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>Sections</Typography>
+        <Button size="small" startIcon={<Add />} variant="contained"
+          onClick={() => setOpenSection(true)}>Add section</Button>
       </Box>
+
+      {(cls.sections?.length || 0) === 0 ? (
+        <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+          <Group sx={{ fontSize: 48, color: 'text.disabled' }} />
+          <Typography color="text.secondary" sx={{ mt: 1 }}>No sections yet — add one to enroll students.</Typography>
+        </Paper>
+      ) : (
+        <Grid container spacing={2}>
+          {cls.sections.map((s) => (
+            <Grid item xs={12} sm={6} md={4} key={s.id}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip label={s.name} sx={{ fontWeight: 700, fontSize: 16 }} />
+                    {s.capacity != null && (
+                      <Typography variant="caption" color="text.secondary">capacity {s.capacity}</Typography>
+                    )}
+                  </Stack>
+                  <Tooltip title="Delete section">
+                    <IconButton size="small" color="error" onClick={() => removeSection(s)}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                {s.classTeacherName ? (
+                  <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
+                    <Person fontSize="small" />
+                    <Typography variant="body2">Class teacher: {s.classTeacherName}</Typography>
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">No class teacher assigned</Typography>
+                )}
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      <Dialog open={openSection} onClose={() => setOpenSection(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>New section</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Section name" required value={sectionName}
+              onChange={(e) => setSectionName(e.target.value)} placeholder="e.g., A" />
+            <TextField label="Capacity" type="number" value={sectionCapacity}
+              onChange={(e) => setSectionCapacity(Number(e.target.value) || 0)} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenSection(false)} disabled={savingSection}>Cancel</Button>
+          <Button variant="contained" onClick={addSection} disabled={savingSection}>
+            {savingSection ? 'Adding…' : 'Add'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
-};
-
-export default ViewClass;
+}

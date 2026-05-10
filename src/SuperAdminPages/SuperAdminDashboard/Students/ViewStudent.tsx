@@ -1,622 +1,273 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+/** Student detail — read-only profile + attendance summary widget. */
+
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Paper,
-  Avatar,
-  Button,
-  Divider,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  useTheme,
-  TextField, // this was missing earlier too
+  Avatar, Box, Button, Chip, CircularProgress, Divider, Grid, Paper, Stack, Typography,
 } from '@mui/material';
+import { ArrowBack, Edit, Phone, Mail, Cake, Print, School } from '@mui/icons-material';
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  ArrowBack as ArrowBackIcon,
-  Person as PersonIcon,
-  School as SchoolIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  Home as HomeIcon,
-  DateRange as DateIcon,
-  Info as InfoIcon,
-  Close as CloseIcon,
-} from '@mui/icons-material';
-import { Student, StudentFormData } from './types';
-import { studentAPI } from './studentAPI';
+  Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip,
+} from 'recharts';
+import { toast } from 'react-toastify';
+import studentService from '../../../services/student.service';
+import { studentAttendanceService } from '../../../services/attendance.service';
+import type { StudentResponse } from '../../../types/student';
+import type { AttendanceSummaryResponse } from '../../../types/attendance';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
+type Period = 'week' | 'month' | 'quarter';
+const PIE_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#06b6d4', '#a855f7'];
+
+function ymd(d: Date) { return d.toISOString().slice(0, 10); }
+function rangeFor(p: Period) {
+  const today = new Date();
+  const days = p === 'week' ? 7 : p === 'month' ? 30 : 90;
+  const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+  return { startDate: ymd(start), endDate: ymd(today) };
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`student-tabpanel-${index}`}
-      aria-labelledby={`student-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `student-tab-${index}`,
-    'aria-controls': `student-tabpanel-${index}`,
-  };
-}
-
-const ViewStudent: React.FC = () => {
+export default function ViewStudent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const [student, setStudent] = useState<Student | null>(null);
+  const [student, setStudent] = useState<StudentResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
+  const [period, setPeriod] = useState<Period>('month');
+  const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
-    const fetchStudent = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        const data = await studentAPI.getStudentById(id);
-        setStudent(data);
-      } catch (err) {
-        setError('Failed to load student details');
-        console.error('Error fetching student:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudent();
+    if (!id) return;
+    studentService.getById(id)
+      .then(setStudent)
+      .catch((err) => toast.error(err.message || 'Failed to load student'))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  useEffect(() => {
+    if (!id) return;
+    setSummaryLoading(true);
+    studentAttendanceService.studentSummary(id, rangeFor(period))
+      .then(setSummary)
+      .catch(() => setSummary(null))
+      .finally(() => setSummaryLoading(false));
+  }, [id, period]);
 
-  const handleEdit = () => {
-    if (student) {
-      navigate(`/dashboard/students/${student.id}/edit`);
-    }
-  };
+  const pieData = useMemo(() => {
+    if (!summary) return [];
+    return [
+      { name: 'Present', value: summary.presentDays },
+      { name: 'Absent',  value: summary.absentDays },
+      { name: 'Late',    value: summary.lateDays },
+      { name: 'Half',    value: summary.halfDays },
+      { name: 'Leave',   value: summary.leaveDays },
+    ].filter((s) => s.value > 0);
+  }, [summary]);
 
-  const handleDeleteClick = () => {
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!student) return;
-    
-    try {
-      await studentAPI.deleteStudent(student.id);
-      // Show success message
-      navigate('/dashboard/students');
-    } catch (err) {
-      console.error('Error deleting student:', err);
-      // Show error message
-    } finally {
-      setDeleteDialogOpen(false);
-    }
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setDeleteDialogOpen(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Loading student details...</Typography>
-      </Box>
-    );
+  if (loading || !student) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
   }
 
-  if (error || !student) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography color="error">{error || 'Student not found'}</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={() => navigate('/dashboard/students')}
-          sx={{ mt: 2 }}
-        >
-          Back to Students
-        </Button>
-      </Box>
-    );
-  }
+  const fullName = student.fullName || `${student.firstName} ${student.lastName}`;
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header with back button and actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/dashboard/students')}
-          sx={{ mr: 2 }}
-        >
-          Back to Students
+    <Box sx={{ maxWidth: 1100, mx: 'auto' }} className="print-area">
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }} className="print-hide">
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/students')}>Back</Button>
+        <Box sx={{ flex: 1 }} />
+        <Button startIcon={<Print />} variant="outlined" onClick={() => window.print()}>
+          Print
         </Button>
-        <Box>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<EditIcon />}
-            onClick={handleEdit}
-            sx={{ mr: 1 }}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={handleDeleteClick}
-          >
-            Delete
-          </Button>
-        </Box>
-      </Box>
+        <Button startIcon={<Edit />} variant="outlined"
+          onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}>
+          Edit
+        </Button>
+      </Stack>
 
-      {/* Student Profile Header */}
-      <Paper sx={{ p: 3, mb: 3, position: 'relative' }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Avatar
-              src={student.avatar || '/default-avatar.png'}
-              alt={student.name}
-              sx={{ width: 120, height: 120, mb: 2 }}
-            />
-            <Chip
-              label={student.status}
-              color={student.status === 'Active' ? 'success' : 'default'}
-              size="small"
-              sx={{ mb: 1 }}
-            />
-            <Typography variant="body2" color="textSecondary">
-              ID: {student.id}
-            </Typography>
-          </Box>
-          
-          <Box sx={{ flex: 1, mt: { xs: 2, md: 0 } }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {student.name}
-            </Typography>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 3,
-              width: '100%',
-              flexWrap: 'wrap'
-            }}>
-              {/* First Column */}
-              <Box sx={{ 
-                flex: 1,
-                minWidth: { sm: '250px' },
-                maxWidth: { sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <SchoolIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>
-                    Class {student.class} - Section {student.section}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <PersonIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>Roll No: {student.rollNo}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <DateIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>DOB: {formatDate(student.dateOfBirth)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <InfoIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>Gender: {student.gender}</Typography>
-                </Box>
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Avatar src={student.photoUrl}
+            sx={{ width: 96, height: 96, fontSize: 32,
+              background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+            {(student.firstName || '?').charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{fullName}</Typography>
+            <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
+              <Chip size="small" label={student.status || 'ACTIVE'}
+                color={student.status === 'ACTIVE' ? 'success' : 'default'} />
+              <Chip size="small" icon={<School fontSize="small" />}
+                label={`${student.schoolClass?.name || '—'} · ${student.section?.name || '—'}`} />
+              {student.rollNumber && <Chip size="small" label={`Roll: ${student.rollNumber}`} variant="outlined" />}
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 1.5, color: 'text.secondary', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Mail fontSize="small" /><Typography variant="body2">{student.email || '—'}</Typography>
               </Box>
-              
-              {/* Second Column */}
-              <Box sx={{ 
-                flex: 1,
-                minWidth: { sm: '250px' },
-                maxWidth: { sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <PhoneIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>{student.phone || 'N/A'}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <EmailIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>{student.email}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <DateIcon color="action" sx={{ mr: 1, minWidth: 24 }} />
-                  <Typography>
-                    Admission: {formatDate(student.admissionDate)}
-                  </Typography>
-                </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Phone fontSize="small" /><Typography variant="body2">{student.phone || '—'}</Typography>
               </Box>
-              
-              {/* Third Column */}
-              <Box sx={{ 
-                flex: 1,
-                minWidth: { sm: '250px' },
-                maxWidth: { sm: '100%', md: 'calc(33.33% - 16px)' }
-              }}>
-                <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Additional Information
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {student.transportOpted && (
-                      <Chip 
-                        label="Transport" 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                      />
-                    )}
-                    {student.hostelOpted && (
-                      <Chip 
-                        label="Hostel" 
-                        size="small" 
-                        color="secondary" 
-                        variant="outlined"
-                      />
-                    )}
-                    {student.tags?.map((tag) => (
-                      <Chip 
-                        key={tag} 
-                        label={tag} 
-                        size="small" 
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </Paper>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Tabs for detailed information */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          aria-label="student details tabs"
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab label="Contact Information" {...a11yProps(0)} />
-          <Tab label="Parent/Guardian" {...a11yProps(1)} />
-          <Tab label="Address" {...a11yProps(2)} />
-          <Tab label="Documents" {...a11yProps(3)} />
-          <Tab label="Activity Log" {...a11yProps(4)} />
-        </Tabs>
-        
-        <TabPanel value={tabValue} index={0}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            width: '100%',
-            mb: 3
-          }}>
-            <Box sx={{ 
-              flex: 1,
-              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
-            }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Contact Details
-                  </Typography>
-                  <List>
-                    <ListItem>
-                      <ListItemIcon>
-                        <PhoneIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Phone Number" 
-                        secondary={student.phone || 'Not provided'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <EmailIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Email Address" 
-                        secondary={student.email || 'Not provided'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <HomeIcon />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Address" 
-                        secondary={
-                          student.address ? (
-                            <Typography component="span" variant="body2" color="text.primary">
-                              {student.address}
-                            </Typography>
-                          ) : 'Not provided'
-                        } 
-                        secondaryTypographyProps={{ component: 'div' }}
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Box>
-            
-            <Box sx={{ 
-              flex: 1,
-              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
-            }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Academic Details
-                  </Typography>
-                  <List>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Class" 
-                        secondary={`${student.class} - ${student.section}`} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Roll Number" 
-                        secondary={student.rollNo} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Admission Date" 
-                        secondary={formatDate(student.admissionDate)} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Status" 
-                        secondary={
-                          <Chip 
-                            label={student.status} 
-                            size="small" 
-                            color={student.status === 'Active' ? 'success' : 'default'}
-                          />
-                        } 
-                        secondaryTypographyProps={{ component: 'div' }}
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={1}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            width: '100%',
-            mb: 3
-          }}>
-            <Box sx={{ 
-              flex: 1,
-              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
-            }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Parent/Guardian Information
-                  </Typography>
-                  <List>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Name" 
-                        secondary={student.parentName || 'Not provided'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Phone Number" 
-                        secondary={student.parentPhone || 'Not provided'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Email Address" 
-                        secondary={student.parentEmail || 'Not provided'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Relationship" 
-                        secondary="Parent" // This could be a field in the Student type if needed
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Box>
-            
-            <Box sx={{ 
-              flex: 1,
-              minWidth: { xs: '100%', md: 'calc(50% - 12px)' }
-            }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Additional Contacts
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    No additional contacts have been added.
-                  </Typography>
-                  <Button variant="outlined" size="small">
-                    Add Emergency Contact
-                  </Button>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={2}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Address Information
-              </Typography>
-              {student.address ? (
-                <Box>
-                  <Typography paragraph sx={{ whiteSpace: 'pre-line' }}>
-                    {student.address}
-                  </Typography>
-                  {/* You could add a map here using a mapping service */}
-                </Box>
-              ) : (
-                <Typography color="text.secondary">
-                  No address information available.
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Cake fontSize="small" />
+                <Typography variant="body2">
+                  {student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : '—'}
                 </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={3}>
-          <Card variant="outlined">
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Documents</Typography>
-                <Button variant="outlined" size="small">
-                  Upload Document
-                </Button>
               </Box>
-              <Typography color="text.secondary">
-                No documents have been uploaded for this student.
-              </Typography>
-              {/* Document list would go here */}
-            </CardContent>
-          </Card>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={4}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Activity Log
-              </Typography>
-              <Typography color="text.secondary">
-                No recent activity to display.
-              </Typography>
-              {/* Activity log items would go here */}
-            </CardContent>
-          </Card>
-        </TabPanel>
+            </Stack>
+          </Box>
+        </Box>
       </Paper>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCloseDeleteDialog}
-        aria-labelledby="delete-dialog-title"
-        aria-describedby="delete-dialog-description"
-      >
-        <DialogTitle id="delete-dialog-title">
-          Delete Student
-        </DialogTitle>
-        <Box position="absolute" top={8} right={8}>
-          <IconButton size="small" onClick={handleCloseDeleteDialog}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <DialogContent>
-          <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete {student.name}? This action cannot be undone.
-            <br />
-            <strong>Student ID:</strong> {student.id}
-            <br />
-            <br />
-            <strong>Note:</strong> This will permanently remove all records associated with this student.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="delete-reason"
-            label="Reason for deletion (optional)"
-            type="text"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={3}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} color="primary">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error"
-            variant="contained"
-          >
-            Delete Permanently
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Address</Typography>
+            <FieldRow label="Street" value={student.address} />
+            <FieldRow label="City" value={student.city} />
+            <FieldRow label="State / Country" value={[student.state, student.country].filter(Boolean).join(', ')} />
+            <FieldRow label="Postal code" value={student.postalCode} />
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Family</Typography>
+            <FieldRow label="Father" value={student.fatherInfo?.name} sub={student.fatherInfo?.phone} />
+            <Divider sx={{ my: 1 }} />
+            <FieldRow label="Mother" value={student.motherInfo?.name} sub={student.motherInfo?.phone} />
+            <Divider sx={{ my: 1 }} />
+            <FieldRow label="Guardian" value={student.guardianInfo?.name} sub={student.guardianInfo?.phone} />
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary">EMERGENCY CONTACT</Typography>
+            <Typography variant="body1">
+              {student.emergencyContact?.name || '—'}
+              {student.emergencyContact?.relation ? ` (${student.emergencyContact.relation})` : ''}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">{student.emergencyContact?.phone}</Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Admission</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Admitted on{' '}
+              {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString() : '—'}
+            </Typography>
+          </Paper>
+        </Grid>
+
+        {/* Attendance summary */}
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Attendance summary</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {summary
+                    ? `${summary.presentDays + summary.lateDays} of ${summary.totalWorkingDays} working days`
+                    : 'No data for this period'}
+                </Typography>
+              </Box>
+              <Box sx={{
+                display: 'inline-flex', borderRadius: 999, p: 0.25,
+                background: 'rgba(15,23,42,0.04)', border: '1px solid', borderColor: 'divider',
+              }}>
+                {(['week', 'month', 'quarter'] as Period[]).map((p) => (
+                  <Box
+                    key={p}
+                    onClick={() => setPeriod(p)}
+                    role="button"
+                    sx={{
+                      px: 1.5, py: 0.5, borderRadius: 999, cursor: 'pointer',
+                      fontSize: 12, fontWeight: 600, textTransform: 'capitalize',
+                      transition: 'all 150ms',
+                      bgcolor: period === p ? 'background.paper' : 'transparent',
+                      color: period === p ? 'primary.main' : 'text.secondary',
+                      boxShadow: period === p ? 1 : 'none',
+                    }}
+                  >
+                    {p}
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+
+            {summaryLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={28} />
+              </Box>
+            ) : !summary ? (
+              <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                No attendance recorded yet.
+              </Typography>
+            ) : (
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ height: 180 }}>
+                    {pieData.length === 0 ? (
+                      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.disabled', fontSize: 13 }}>
+                        No data
+                      </Box>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={pieData} dataKey="value" nameKey="name"
+                            innerRadius={42} outerRadius={64} paddingAngle={3}>
+                            {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                          </Pie>
+                          <RTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </Box>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                      {summary.attendancePercentage?.toFixed(1) ?? '0'}%
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">Overall</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={8}>
+                  <Grid container spacing={1}>
+                    <SummaryStat label="Present"  value={summary.presentDays}     accent="#10b981" />
+                    <SummaryStat label="Absent"   value={summary.absentDays}      accent="#ef4444" />
+                    <SummaryStat label="Late"     value={summary.lateDays}        accent="#f59e0b" />
+                    <SummaryStat label="Half day" value={summary.halfDays}        accent="#06b6d4" />
+                    <SummaryStat label="Leave"    value={summary.leaveDays}       accent="#a855f7" />
+                    <SummaryStat label="Working"  value={summary.totalWorkingDays} accent="#6366f1" />
+                  </Grid>
+                </Grid>
+              </Grid>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
     </Box>
   );
-};
+}
 
-export default ViewStudent;
+function SummaryStat({ label, value, accent }: { label: string; value: number; accent: string }) {
+  return (
+    <Grid item xs={6} sm={4}>
+      <Box sx={{
+        p: 1.5, borderRadius: 1.5, border: '1px solid', borderColor: 'divider',
+        borderLeft: `3px solid ${accent}`,
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>{value}</Typography>
+        <Typography variant="caption" color="text.secondary"
+          sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+      </Box>
+    </Grid>
+  );
+}
+
+function FieldRow({ label, value, sub }: { label: string; value?: string | null; sub?: string }) {
+  return (
+    <Box sx={{ mb: 1 }}>
+      <Typography variant="caption" color="text.secondary"
+        sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+      <Typography variant="body1">{value || '—'}</Typography>
+      {sub && <Typography variant="body2" color="text.secondary">{sub}</Typography>}
+    </Box>
+  );
+}

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Lock, Mail, User, Users } from 'lucide-react';
+import { X, Lock, Mail, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import type { ApiError } from '../service/apiService';
 
-type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'superadmin';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,60 +13,62 @@ interface LoginModalProps {
 }
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
-    email: 'etetet',
+    email: '',
     password: '',
-    rememberMe: false
+    rememberMe: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    // Basic validation
-    if (!formData.email || !formData.password) {
-      setError('Please enter both email and password');
+
+    const identifier = formData.email.trim();
+    if (!identifier || !formData.password) {
+      setError('Please enter your email/phone and password');
       return;
     }
-    
+
     setIsLoading(true);
-    
     try {
-      // Simulate API call with a small delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Simple demo logic - in a real app, this would come from the auth response
-      const email = formData.email.toLowerCase().trim();
-      let role: UserRole = 'student'; // Default to student
-      
-      if (email.includes('admin') || email.includes('superadmin')) {
-        role = 'admin';
-      } else if (email.includes('teacher')) {
-        role = 'teacher';
-      } else if (email.includes('parent')) {
-        role = 'parent';
+      // Backend accepts either email or 10-digit phone — pick the right field.
+      const isPhone = /^[0-9]{10}$/.test(identifier);
+      const response = await login({
+        email: isPhone ? undefined : identifier,
+        phone: isPhone ? identifier : undefined,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
+
+      // First-login forced reset: backend signals passwordResetRequired and
+      // returns a session-scoped token. Send the user straight to the reset
+      // page with `?initial=1` so they land on the right backend endpoint.
+      if (response.passwordResetRequired && response.accessToken) {
+        onClose();
+        window.location.href = `/reset-password?initial=1&token=${encodeURIComponent(response.accessToken)}`;
+        return;
       }
-      
-      // For demo purposes, accept any non-empty password
-      if (formData.password.trim() === '') {
-        throw new Error('Password cannot be empty');
-      }
-      
-      console.log('Login successful, calling onLoginSuccess with role:', role);
+
+      const role = (response.user.role || 'student').toString().toLowerCase() as UserRole;
       onLoginSuccess(role);
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
+      const apiErr = err as ApiError | Error;
+      const message =
+        'message' in apiErr && apiErr.message
+          ? apiErr.message
+          : 'Invalid credentials. Please try again.';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -93,15 +97,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
             <User className="h-8 w-8 text-blue-600" />
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="text-gray-600 mt-2">Sign in to your EduSmart360 account</p>
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-            <p>Demo accounts (any password works):</p>
-            <p className="font-mono text-xs mt-1">admin@school.com</p>
-            <p className="font-mono text-xs">teacher@school.com</p>
-            <p className="font-mono text-xs">parent@school.com</p>
-            <p className="font-mono text-xs">student@school.com</p>
-          </div>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">Welcome back</h2>
+          <p className="text-gray-600 mt-2">Sign in to continue to your dashboard</p>
         </div>
 
         {error && (
@@ -125,8 +122,9 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
                 type="text"
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="username"
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email or username"
+                placeholder="Email or 10-digit phone"
                 required
               />
             </div>
@@ -137,7 +135,11 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <a href="#forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
+              <a
+                href="/forgot-password"
+                onClick={(e) => { e.preventDefault(); onClose(); window.location.href = '/forgot-password'; }}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
                 Forgot password?
               </a>
             </div>

@@ -1,190 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Container, 
-  Paper, 
-  Typography, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Chip,
-  Button,
-  Box,
-  IconButton
-} from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { getStatusBadgeClass } from '../utils/attendanceHelpers';
-import { AttendanceRecord, AttendanceStatus } from '../types/attendance';
+/** View single attendance record. */
 
-const ViewAttendancePage: React.FC = () => {
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import {
+  Box, Button, Chip, CircularProgress, Grid, Paper, Stack, Typography,
+} from '@mui/material';
+import { ArrowBack, Edit } from '@mui/icons-material';
+import { studentAttendanceService } from '../../../../services/attendance.service';
+import type { StudentAttendanceResponse, StudentAttendanceStatus } from '../../../../types/attendance';
+
+const STATUS_COLORS: Record<StudentAttendanceStatus, string> = {
+  PRESENT: '#10b981', ABSENT: '#ef4444', LATE: '#f59e0b',
+  HALF_DAY: '#06b6d4', LEAVE: '#a855f7', EXCUSED: '#6366f1',
+};
+
+export default function ViewAttendancePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
+  const [record, setRecord] = useState<StudentAttendanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchAttendance = () => {
-      try {
-        // Get records from localStorage
-        const storedRecords = localStorage.getItem('attendanceRecords');
-        const records = storedRecords ? JSON.parse(storedRecords) : [];
-        
-        // Find the attendance record by ID
-        const record = records.find((r: AttendanceRecord) => r.id === id);
-        
-        if (record) {
-          setAttendance(record);
-        } else {
-          setError('Attendance record not found');
-        }
-      } catch (err) {
-        console.error('Error fetching attendance:', err);
-        setError('Failed to load attendance record');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAttendance();
+    if (!id) return;
+    studentAttendanceService.getById(id)
+      .then(setRecord)
+      .catch((err) => toast.error(err.message || 'Failed to load record'))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const getStatusChip = (status: AttendanceStatus) => {
-    const statusMap = {
-      present: { label: 'Present', color: 'success' as const },
-      absent: { label: 'Absent', color: 'error' as const },
-      leave: { label: 'On Leave', color: 'warning' as const }
-    };
-    
-    const statusInfo = statusMap[status] || { label: 'Unknown', color: 'default' as const };
-    
-    return (
-      <Chip 
-        label={statusInfo.label} 
-        color={statusInfo.color}
-        size="small"
-        variant="outlined"
-      />
-    );
-  };
-
-  if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
-        <Typography>Loading...</Typography>
-      </Container>
-    );
-  }
-
-  if (error || !attendance) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5" color="error">
-            {error || 'Attendance record not found'}
-          </Typography>
-          <Button 
-            variant="outlined" 
-            onClick={() => navigate(-1)}
-            startIcon={<ArrowBackIcon />}
-          >
-            Back to List
-          </Button>
-        </Box>
-      </Container>
-    );
+  if (loading || !record) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center">
-          <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4" component="h1">
-            Attendance Details
-          </Typography>
-        </Box>
-        
-        <Box display="flex" gap={2}>
-          <Button 
-            variant="outlined" 
-            onClick={() => navigate(`/attendance/edit/${attendance.id}`)}
-          >
-            Edit
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary"
-            onClick={() => navigate(-1)}
-          >
-            Back to List
-          </Button>
-        </Box>
-      </Box>
-      
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(250px, 1fr))" gap={3} mb={4}>
+    <Box sx={{ maxWidth: 720, mx: 'auto' }}>
+      <Stack direction="row" alignItems="center" sx={{ mb: 3 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/attendance')}>Back</Button>
+        <Box sx={{ flex: 1 }} />
+        <Button startIcon={<Edit />} variant="outlined"
+          onClick={() => navigate(`/dashboard/attendance/edit/${record.id}`)}>Edit</Button>
+      </Stack>
+
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+          <Box sx={{
+            width: 48, height: 48, borderRadius: 2, color: 'white',
+            background: STATUS_COLORS[record.status] || '#94a3b8',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 20,
+          }}>{record.status.charAt(0)}</Box>
           <Box>
-            <Typography variant="subtitle2" color="textSecondary">Date</Typography>
-            <Typography variant="body1">
-              {format(new Date(attendance.date), 'MMMM dd, yyyy')}
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{record.studentName}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {record.className || '—'} · {record.sectionName || '—'} · Roll {record.rollNumber || '—'}
             </Typography>
           </Box>
-          
-          <Box>
-            <Typography variant="subtitle2" color="textSecondary">Class</Typography>
-            <Typography variant="body1">{attendance.class}</Typography>
-          </Box>
-          
-          <Box>
-            <Typography variant="subtitle2" color="textSecondary">Section</Typography>
-            <Typography variant="body1">{attendance.section}</Typography>
-          </Box>
-          
-          <Box>
-            <Typography variant="subtitle2" color="textSecondary">Total Students</Typography>
-            <Typography variant="body1">{attendance.students.length}</Typography>
-          </Box>
-        </Box>
-        
-        <Typography variant="h6" gutterBottom>Student Attendance</Typography>
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Roll No</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell align="center">Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {attendance.students.map((student) => (
-                <TableRow key={student.studentId}>
-                  <TableCell>{student.rollNo}</TableCell>
-                  <TableCell>{student.name}</TableCell>
-                  <TableCell align="center">
-                    {getStatusChip(student.status)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <Box mt={3} display="flex" justifyContent="flex-end">
-          <Typography variant="caption" color="textSecondary">
-            Last updated: {format(new Date(attendance.updatedAt), 'MMM dd, yyyy hh:mm a')}
-          </Typography>
-        </Box>
-      </Paper>
-    </Container>
-  );
-};
+          <Box sx={{ flex: 1 }} />
+          <Chip label={record.status}
+            sx={{ background: STATUS_COLORS[record.status] || '#94a3b8', color: 'white', fontWeight: 700 }} />
+        </Stack>
 
-export default ViewAttendancePage;
+        <Grid container spacing={2}>
+          <FieldGrid label="Date" value={new Date(record.attendanceDate).toLocaleDateString()} />
+          <FieldGrid label="Academic year" value={record.academicYearName} />
+          <FieldGrid label="Marked by" value={record.markedByName} />
+          <FieldGrid label="Marked at"
+            value={record.createdAt ? new Date(record.createdAt).toLocaleString() : '—'} />
+          <FieldGrid label="Half day" value={record.isHalfDay ? `Yes (${record.halfDayType || ''})` : 'No'} />
+          <FieldGrid label="Remarks" value={record.remarks} fullWidth />
+        </Grid>
+      </Paper>
+    </Box>
+  );
+}
+
+function FieldGrid({ label, value, fullWidth }: { label: string; value?: string | null; fullWidth?: boolean }) {
+  return (
+    <Grid item xs={12} md={fullWidth ? 12 : 6}>
+      <Typography variant="caption" color="text.secondary"
+        sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Typography>
+      <Typography variant="body1">{value || '—'}</Typography>
+    </Grid>
+  );
+}

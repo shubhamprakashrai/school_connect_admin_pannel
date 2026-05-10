@@ -1,495 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AlertColor } from '@mui/material';
+/** Edit Teacher — wired to `PUT /teachers/{id}`. Backend's UpdateTeacherRequest is narrow. */
+
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
-  Box, Button, Paper, TextField, Typography, Divider, FormControl,
-  InputLabel, Select, MenuItem, FormControlLabel, Checkbox, Chip,
-  Avatar, IconButton, CircularProgress, Snackbar, Alert
+  Box, Button, CircularProgress, Grid, MenuItem, Paper, TextField, Typography,
 } from '@mui/material';
-import {
-  AddPhotoAlternate as AddPhotoIcon, Delete as DeleteIcon, Save as SaveIcon,
-  Cancel as CancelIcon, Add as AddIcon
-} from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Teacher, TeacherFormData } from './types/teacher.types';
-import { teacherAPI } from './api/teacherAPI';
+import { Save } from '@mui/icons-material';
+import teacherService from '../../../services/teacher.service';
+import type { TeacherUpdateRequest } from '../../../types/teacher';
 
-// Mock data for select options
-const QUALIFICATIONS = ['B.Ed', 'M.Ed', 'B.Sc', 'M.Sc', 'B.A', 'M.A', 'Ph.D', 'Other'];
-const SUBJECTS = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History', 'Geography', 'Computer Science'];
-const CLASS_SECTIONS = Array.from({ length: 12 }, (_, i) => 
-  ['A', 'B', 'C', 'D'].map(sec => `${i + 1}-${sec}`)
-).flat();
-
-const EditTeacherForm: React.FC = () => {
+export default function EditTeacherForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState<{ 
-    open: boolean; 
-    message: string; 
-    severity: AlertColor 
-  }>({ 
-    open: false, 
-    message: '', 
-    severity: 'success' 
-  });
-  const [imagePreview, setImagePreview] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<TeacherUpdateRequest>({});
+  const [name, setName] = useState('');
 
-  // Form validation schema
-  const validationSchema = Yup.object({
-    fullName: Yup.string().required('Required'),
-    email: Yup.string().email('Invalid email').required('Required'),
-    phone: Yup.string().matches(/^[0-9]{10}$/, 'Must be 10 digits').required('Required'),
-    dateOfBirth: Yup.date().required('Required').max(new Date(), 'Invalid date'),
-    gender: Yup.string().required('Required'),
-    qualification: Yup.string().required('Required'),
-    experience: Yup.number().min(0, 'Must be positive').required('Required'),
-    specialization: Yup.array().min(1, 'Select at least one').required('Required'),
-    joiningDate: Yup.date().required('Required'),
-    address: Yup.string().required('Required'),
-  });
-
-  // Formik form
-  const formik = useFormik<TeacherFormData>({
-    initialValues: {
-      fullName: '',
-      email: '',
-      phone: '',
-      dateOfBirth: '',
-      gender: 'Male',
-      qualification: '',
-      experience: 0,
-      specialization: [],
-      assignedClasses: [],
-      joiningDate: new Date().toISOString().split('T')[0],
-      address: '',
-      isClassTeacher: false,
-      transportAssigned: false,
-      hostelAssigned: false,
-      status: 'Active',
-    },
-    validationSchema,
-    onSubmit: async (values) => {
-      try {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setSnackbar({
-          open: true,
-          message: 'Teacher updated successfully!',
-          severity: 'success'
-        });
-        setTimeout(() => navigate(`/dashboard/teachers/${id}`), 1500);
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: 'Update failed. Please try again.',
-          severity: 'error'
-        });
-      }
-    },
-  });
-
-  // Load teacher data
   useEffect(() => {
-    const loadTeacher = async () => {
-      try {
-        // Mock data
-        const mockTeacher: Teacher = {
-          id: id || '',
-          teacherId: 'TCH001',
-          fullName: 'John Doe',
-          email: 'john.doe@example.com',
-          phone: '1234567890',
-          dateOfBirth: '1985-05-15',
-          gender: 'Male',
-          qualification: 'M.Sc, B.Ed',
-          experience: 10,
-          specialization: ['Mathematics', 'Physics'],
-          assignedClasses: ['10-A', '12-B'],
-          joiningDate: '2020-01-15',
-          address: '123 Teacher St',
-          isClassTeacher: true,
-          transportAssigned: true,
-          hostelAssigned: false,
-          status: 'Active',
-          profilePhoto: 'https://randomuser.me/api/portraits/men/1.jpg',
-          createdAt: '2020-01-15T00:00:00Z',
-          updatedAt: '2023-01-15T00:00:00Z',
-        };
-        
-        const { id: _, teacherId, profilePhoto, ...formValues } = mockTeacher;
-        formik.setValues({
-          ...formValues,
-          dateOfBirth: formValues.dateOfBirth,
-          joiningDate: formValues.joiningDate,
-        });
-        setImagePreview(profilePhoto || '');
-      } catch (error) {
-        console.error('Error loading teacher:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTeacher();
+    if (!id) return;
+    teacherService.getById(id).then((t) => {
+      setName(t.fullName || `${t.firstName} ${t.lastName}`);
+      setForm({
+        firstName: t.firstName,
+        lastName: t.lastName,
+        email: t.email,
+        phone: t.phone,
+        address: t.address,
+        designation: t.designation,
+        department: t.department,
+        status: t.status,
+      });
+    }).catch((err) => toast.error(err.message || 'Failed to load teacher'))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        formik.setFieldValue('profilePhotoFile', file);
-      };
-      reader.readAsDataURL(file);
+  const set = <K extends keyof TeacherUpdateRequest>(k: K, v: TeacherUpdateRequest[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  const save = async () => {
+    if (!id) return;
+    setSaving(true);
+    try {
+      await teacherService.update(id, form);
+      toast.success('Saved');
+      navigate(`/dashboard/teachers/${id}`);
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Save failed');
+    } finally {
+      setSaving(false);
     }
   };
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
+    return <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>;
   }
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-          Edit Teacher
-        </Typography>
-        
-        <Paper elevation={2} sx={{ p: 4, borderRadius: 2, mb: 4 }}>
-          <form onSubmit={formik.handleSubmit}>
-            {/* Profile Photo */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Avatar
-                  src={imagePreview || '/default-avatar.png'}
-                  sx={{ width: 120, height: 120, mb: 2, margin: '0 auto' }}
-                />
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<AddPhotoIcon />}
-                  size="small"
-                >
-                  Change Photo
-                  <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-                </Button>
-              </Box>
-            </Box>
-            
-            {/* Personal Information */}
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>Personal Information</Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    name="fullName"
-                    value={formik.values.fullName}
-                    onChange={formik.handleChange}
-                    error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-                    helperText={formik.touched.fullName && formik.errors.fullName}
-                    size="small"
-                    margin="normal"
-                  />
-                </Box>
-                
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <FormControl fullWidth size="small" margin="normal">
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      name="gender"
-                      value={formik.values.gender}
-                      label="Gender"
-                      onChange={formik.handleChange}
-                    >
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <DatePicker
-                    label="Date of Birth"
-                    value={formik.values.dateOfBirth ? new Date(formik.values.dateOfBirth) : null}
-                    onChange={(date) => {
-                      const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                      formik.setFieldValue('dateOfBirth', formattedDate);
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                        margin: 'normal',
-                        error: formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth),
-                        helperText: formik.touched.dateOfBirth && formik.errors.dateOfBirth,
-                      },
-                    }}
-                  />
-                </Box>
-                
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <TextField
-                    fullWidth
-                    label="Alternate Phone"
-                    name="alternatePhone"
-                    value={formik.values.alternatePhone || ''}
-                    onChange={formik.handleChange}
-                    error={formik.touched.alternatePhone && Boolean(formik.errors.alternatePhone)}
-                    helperText={formik.touched.alternatePhone && formik.errors.alternatePhone}
-                    size="small"
-                    margin="normal"
-                  />
-                </Box>
-              </Box>
-              
-              <Box>
-                <TextField
-                  fullWidth
-                  label="Address"
-                  name="address"
-                  multiline
-                  rows={2}
-                  value={formik.values.address}
-                  onChange={formik.handleChange}
-                  error={formik.touched.address && Boolean(formik.errors.address)}
-                  helperText={formik.touched.address && formik.errors.address}
-                  size="small"
-                  margin="normal"
-                />
-              </Box>
-            </Box>
-            
-            {/* Contact Information */}
-            <Typography variant="subtitle1" sx={{ mt: 4, mb: 2 }}>Contact Information</Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formik.values.email}
-                  onChange={formik.handleChange}
-                  error={formik.touched.email && Boolean(formik.errors.email)}
-                  helperText={formik.touched.email && formik.errors.email}
-                  size="small"
-                  margin="normal"
-                />
-              </Box>
-              
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  name="phone"
-                  value={formik.values.phone}
-                  onChange={formik.handleChange}
-                  error={formik.touched.phone && Boolean(formik.errors.phone)}
-                  helperText={formik.touched.phone && formik.errors.phone}
-                  size="small"
-                  margin="normal"
-                />
-              </Box>
-              
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox 
-                      name="isClassTeacher"
-                      checked={formik.values.isClassTeacher}
-                      onChange={formik.handleChange}
-                      color="primary"
-                    />
-                  }
-                  label="Class Teacher"
-                />
-              </Box>
-            </Box>
-            
-            {/* Academic Information */}
-            <Typography variant="subtitle1" sx={{ mt: 4, mb: 2 }}>Academic Information</Typography>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <FormControl fullWidth size="small" margin="normal">
-                    <InputLabel>Qualification</InputLabel>
-                    <Select
-                      name="qualification"
-                      value={formik.values.qualification}
-                      label="Qualification"
-                      onChange={formik.handleChange}
-                    >
-                      {QUALIFICATIONS.map((qual) => (
-                        <MenuItem key={qual} value={qual}>{qual}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <TextField
-                    fullWidth
-                    label="Experience (Years)"
-                    name="experience"
-                    type="number"
-                    value={formik.values.experience}
-                    onChange={formik.handleChange}
-                    error={formik.touched.experience && Boolean(formik.errors.experience)}
-                    helperText={formik.touched.experience && formik.errors.experience}
-                    size="small"
-                    margin="normal"
-                  />
-                </Box>
-                
-                <Box sx={{ flex: 1, minWidth: 200 }}>
-                  <DatePicker
-                    label="Joining Date"
-                    value={formik.values.joiningDate ? new Date(formik.values.joiningDate) : null}
-                    onChange={(date) => {
-                      const formattedDate = date ? date.toISOString().split('T')[0] : '';
-                      formik.setFieldValue('joiningDate', formattedDate);
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: 'small',
-                        margin: 'normal',
-                        error: formik.touched.joiningDate && Boolean(formik.errors.joiningDate),
-                        helperText: formik.touched.joiningDate && formik.errors.joiningDate,
-                      },
-                    }}
-                  />
-                </Box>
-              </Box>
-              
-              <Box>
-                <FormControl fullWidth size="small" margin="normal">
-                  <InputLabel>Specialization</InputLabel>
-                  <Select
-                    multiple
-                    name="specialization"
-                    value={formik.values.specialization}
-                    onChange={formik.handleChange}
-                    renderValue={(selected) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip key={value} label={value} size="small" />
-                        ))}
-                      </Box>
-                    )}
-                  >
-                    {SUBJECTS.map((subject) => (
-                      <MenuItem key={subject} value={subject}>
-                        <Checkbox checked={formik.values.specialization.includes(subject)} />
-                        {subject}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mt: 1 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox 
-                      name="transportAssigned"
-                      checked={formik.values.transportAssigned}
-                      onChange={formik.handleChange}
-                      color="primary"
-                    />
-                  }
-                  label="Transport Assigned"
-                />
-                
-                <FormControlLabel
-                  control={
-                    <Checkbox 
-                      name="hostelAssigned"
-                      checked={formik.values.hostelAssigned}
-                      onChange={formik.handleChange}
-                      color="primary"
-                    />
-                  }
-                  label="Hostel Assigned"
-                />
-                
-                <FormControlLabel
-                  control={
-                    <Checkbox 
-                      name="status"
-                      checked={formik.values.status === 'Active'}
-                      onChange={(e) => {
-                        formik.setFieldValue('status', e.target.checked ? 'Active' : 'Inactive');
-                      }}
-                      color="primary"
-                    />
-                  }
-                  label="Active Status"
-                />
-              </Box>
-            </Box>
-            
-            {/* Form Actions */}
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<CancelIcon />}
-                onClick={() => navigate(`/dashboard/teachers/${id}`)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                startIcon={formik.isSubmitting ? <CircularProgress size={20} /> : <SaveIcon />}
-                disabled={formik.isSubmitting}
-              >
-                {formik.isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </Box>
-          </form>
-        </Paper>
-        
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-        >
-          <Alert 
-            onClose={() => setSnackbar({ ...snackbar, open: false })} 
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </LocalizationProvider>
+    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>Edit {name}</Typography>
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <TextField fullWidth label="First name" value={form.firstName || ''}
+              onChange={(e) => set('firstName', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField fullWidth label="Last name" value={form.lastName || ''}
+              onChange={(e) => set('lastName', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField fullWidth label="Email" type="email" value={form.email || ''}
+              onChange={(e) => set('email', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField fullWidth label="Phone" value={form.phone || ''}
+              onChange={(e) => set('phone', e.target.value)} />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField fullWidth multiline rows={2} label="Address" value={form.address || ''}
+              onChange={(e) => set('address', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Designation" value={form.designation || ''}
+              onChange={(e) => set('designation', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Department" value={form.department || ''}
+              onChange={(e) => set('department', e.target.value)} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField select fullWidth label="Status" value={form.status || 'ACTIVE'}
+              onChange={(e) => set('status', e.target.value)}>
+              <MenuItem value="ACTIVE">Active</MenuItem>
+              <MenuItem value="INACTIVE">Inactive</MenuItem>
+              <MenuItem value="SUSPENDED">Suspended</MenuItem>
+            </TextField>
+          </Grid>
+        </Grid>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
+          <Button onClick={() => navigate(-1)} disabled={saving}>Cancel</Button>
+          <Button startIcon={<Save />} variant="contained" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
-};
-
-export default EditTeacherForm;
+}

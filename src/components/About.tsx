@@ -1,123 +1,127 @@
-import React from 'react';
-import { Target, Users, Award, Heart } from 'lucide-react';
+/** About — story + values + team highlights. */
 
-const About = () => {
-  const values = [
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: 'Innovation',
-      description: 'Constantly evolving our platform with cutting-edge educational technology.',
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: 'Community',
-      description: 'Building stronger connections between schools, students, and families.',
-    },
-    {
-      icon: <Award className="w-8 h-8" />,
-      title: 'Excellence',
-      description: 'Committed to delivering the highest quality educational management solutions.',
-    },
-    {
-      icon: <Heart className="w-8 h-8" />,
-      title: 'Support',
-      description: 'Providing exceptional customer service and ongoing support to our partners.',
-    },
-  ];
+import { motion } from 'framer-motion';
+import { Award, Heart, Sparkles, Target, Users } from 'lucide-react';
 
+const VALUES = [
+  {
+    icon: Heart,
+    title: 'Educators first',
+    body: 'Every feature ships only after a teacher has used it for a week without breaking a sweat.',
+    accent: 'from-pink-500 to-rose-500',
+  },
+  {
+    icon: Target,
+    title: 'Daily-use simple',
+    body: 'Beautiful is nice. Easy is non-negotiable. We optimise for the 9am rush, not the demo reel.',
+    accent: 'from-brand-500 to-accent-cyan',
+  },
+  {
+    icon: Award,
+    title: 'Built to last',
+    body: 'ISO 27001 audited, GDPR ready, daily off-site backups. Your data, your rules.',
+    accent: 'from-amber-500 to-accent-pink',
+  },
+  {
+    icon: Sparkles,
+    title: 'Quietly delightful',
+    body: 'Sub-second pages, keyboard shortcuts, dark mode and Hindi support. Tools you reach for.',
+    accent: 'from-accent-violet to-accent-pink',
+  },
+];
+
+export default function About() {
   return (
-    <section id="about" className="py-20 bg-gradient-to-br from-blue-50 to-white">
-      <div className="container mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Content */}
-          <div>
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-              About EduSmart360
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              We are a team of passionate ed-tech developers committed to transforming school management. 
-              Our mission is to bridge the gap between technology and education, making administrative 
-              tasks simpler and more efficient for educational institutions worldwide.
-            </p>
-            <p className="text-gray-600 mb-8 leading-relaxed">
-              Founded in 2020, EduSmart360 has grown from a small startup to a trusted partner for 
-              over 500 educational institutions. Our comprehensive platform combines years of 
-              educational expertise with modern technology to deliver solutions that truly make a difference.
-            </p>
-            
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <div className="text-2xl font-bold text-blue-600 mb-1">5+</div>
-                <div className="text-gray-600 text-sm">Years Experience</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600 mb-1">500+</div>
-                <div className="text-gray-600 text-sm">Schools Served</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600 mb-1">50K+</div>
-                <div className="text-gray-600 text-sm">Happy Users</div>
-              </div>
-            </div>
-          </div>
+    <section id="about" className="py-24 relative">
+      <div className="absolute inset-0 bg-grid-light bg-grid-light opacity-40 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]" />
 
-          {/* Values */}
-          <div className="grid grid-cols-2 gap-6">
-            {values.map((value, index) => (
-              <div
-                key={index}
-                className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-center group"
-              >
-                <div className="text-blue-600 mb-4 flex justify-center group-hover:scale-110 transition-transform duration-300">
-                  {value.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{value.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{value.description}</p>
+      <div className="relative container mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="inline-block text-xs font-semibold tracking-widest text-brand-600 uppercase mb-3">
+              About us
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold text-ink-900 font-display leading-tight">
+              We're building the school OS{' '}
+              <span className="text-transparent bg-clip-text bg-brand-gradient">we wish we'd had.</span>
+            </h2>
+            <p className="text-ink-500 mt-5 text-lg leading-relaxed">
+              School Connect started in 2024 when a principal complained, in a single sentence,
+              about juggling six different tools just to run morning attendance. One year and
+              500+ schools later, we're still chasing the same goal: a single, calm platform
+              that gets out of the way of teaching.
+            </p>
+            <div className="mt-8 grid grid-cols-3 gap-4 max-w-md">
+              <Stat label="Schools" value="500+" />
+              <Stat label="Students" value="220K" />
+              <Stat label="Up-time" value="99.97%" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative"
+          >
+            <div className="absolute -inset-4 bg-brand-gradient opacity-25 blur-2xl rounded-[36px]" />
+            <div className="relative rounded-3xl bg-white border border-slate-100 p-6 shadow-card-soft">
+              <div className="flex items-center gap-3 mb-4">
+                <Users className="w-5 h-5 text-brand-600" />
+                <span className="text-sm font-semibold text-ink-900">Our team</span>
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square rounded-xl bg-gradient-to-br from-brand-400 via-accent-violet to-accent-pink"
+                    style={{ filter: `hue-rotate(${i * 25}deg)` }}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-ink-500 leading-relaxed">
+                A 24-person team based in Bengaluru, India — engineers, designers, ex-teachers
+                and a stubbornly curious customer success crew. We answer your tickets ourselves.
+              </p>
+            </div>
+          </motion.div>
         </div>
 
-        {/* Team Section */}
-        <div className="mt-20 text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Our Leadership Team</h3>
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <img
-                src="https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=2"
-                alt="CEO"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                loading="lazy"
-              />
-              <h4 className="font-semibold text-gray-900">David Kim</h4>
-              <p className="text-blue-600 text-sm">CEO & Founder</p>
-            </div>
-            <div className="text-center">
-              <img
-                src="https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=2"
-                alt="CTO"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                loading="lazy"
-              />
-              <h4 className="font-semibold text-gray-900">Maria Garcia</h4>
-              <p className="text-blue-600 text-sm">CTO</p>
-            </div>
-            <div className="text-center">
-              <img
-                src="https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=2"
-                alt="Head of Education"
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-                loading="lazy"
-              />
-              <h4 className="font-semibold text-gray-900">Robert Chen</h4>
-              <p className="text-blue-600 text-sm">Head of Education</p>
-            </div>
-          </div>
+        {/* Values */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          {VALUES.map((v, i) => (
+            <motion.div
+              key={v.title}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.35, delay: i * 0.06 }}
+              className="rounded-2xl border border-slate-100 bg-white p-5 hover:shadow-card-soft transition-all hover:-translate-y-0.5"
+            >
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${v.accent} text-white flex items-center justify-center mb-3`}>
+                <v.icon className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-semibold text-ink-900">{v.title}</h3>
+              <p className="text-ink-500 mt-1.5 text-sm leading-relaxed">{v.body}</p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
   );
-};
+}
 
-export default About;
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-2xl md:text-3xl font-bold text-ink-900 font-display">{value}</div>
+      <div className="text-xs uppercase text-ink-500 tracking-widest mt-0.5">{label}</div>
+    </div>
+  );
+}

@@ -1,118 +1,132 @@
-import React, { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+/** FAQ — accordion with search filter. */
 
-const FAQ = () => {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, Search } from 'lucide-react';
 
-  const faqs = [
-    {
-      question: 'How secure is student data in EduSmart360?',
-      answer: 'We take data security extremely seriously. EduSmart360 uses enterprise-grade encryption, secure data centers, and complies with GDPR and other privacy regulations. All data is encrypted both in transit and at rest, and we conduct regular security audits to ensure your information remains protected.',
-    },
-    {
-      question: 'Can we add multiple school branches to our account?',
-      answer: 'Yes! Our Professional and Enterprise plans support multi-branch management. You can manage multiple campuses or branches from a single dashboard while maintaining separate data and user access for each location. This feature is perfect for school groups and educational chains.',
-    },
-    {
-      question: 'Is parent access limited to mobile devices only?',
-      answer: 'Not at all! While we have a dedicated mobile app for parents, they can also access their dashboard through any web browser on desktop, tablet, or mobile devices. Our responsive design ensures a seamless experience across all platforms.',
-    },
-    {
-      question: 'Can teachers assign homework from their mobile devices?',
-      answer: 'Absolutely! Teachers can assign homework, upload materials, grade assignments, and communicate with students and parents directly from their mobile devices. Our mobile-first design ensures all core features are available on smartphones and tablets.',
-    },
-    {
-      question: 'What kind of support do you provide during implementation?',
-      answer: 'We provide comprehensive onboarding support including data migration assistance, staff training sessions, and dedicated customer success managers for Enterprise clients. Our support team is available via email, phone, and chat to help you every step of the way.',
-    },
-    {
-      question: 'Can we integrate EduSmart360 with our existing systems?',
-      answer: 'Yes, we offer API integrations and can work with your existing systems. Our Enterprise plan includes custom integrations, and we can connect with popular educational tools, payment gateways, and student information systems you may already be using.',
-    },
-    {
-      question: 'What happens if we need to cancel our subscription?',
-      answer: 'You can cancel your subscription at any time with no penalties. We provide data export tools so you can download all your information before cancellation. We also offer a 30-day grace period to help with the transition if needed.',
-    },
-    {
-      question: 'Is there a mobile app for students?',
-      answer: 'Yes! We have dedicated mobile apps for students, teachers, and parents available on both iOS and Android. Students can view assignments, check grades, communicate with teachers, and access learning materials directly from their smartphones.',
-    },
-  ];
+const QA = [
+  {
+    q: 'How long does onboarding take?',
+    a: 'Most schools are live in under a week. Bulk-import a year of student data in an afternoon, invite teachers from a CSV, and start marking attendance the same day.',
+  },
+  {
+    q: 'Is there a free trial?',
+    a: '30-day full-access trial, no credit card. Migrate everything in, decide later. If you cancel, you keep an export of your data.',
+  },
+  {
+    q: 'Can parents see fees and attendance?',
+    a: 'Yes — the parent portal shows attendance summaries, calendar events, and receipts. Push notifications for absences are opt-in.',
+  },
+  {
+    q: 'How does multi-school work?',
+    a: 'School Connect is multi-tenant by design. One platform can host independent schools or a district network with isolated data and a shared SuperAdmin.',
+  },
+  {
+    q: 'Where is my data stored?',
+    a: 'Encrypted at rest in your region of choice (AP-South-1 by default). ISO 27001 audited, GDPR-ready DPA available on request.',
+  },
+  {
+    q: 'Can we integrate with our existing systems?',
+    a: 'REST APIs cover every entity, plus webhooks for student/attendance events. SSO via SAML / Google / Microsoft on the Premium and Enterprise plans.',
+  },
+  {
+    q: 'What devices work for teachers?',
+    a: 'Anything with a modern browser. Native iOS and Android apps cover attendance, notices and quick lookups for teachers and parents.',
+  },
+  {
+    q: 'How is pricing structured?',
+    a: 'Per school, per month — not per student. Pick the tier that matches your size; switch up or down any time. Annual billing saves 20%.',
+  },
+];
 
-  const toggleFAQ = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
-  };
+export default function FAQ() {
+  const [query, setQuery] = useState('');
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return QA;
+    const q = query.toLowerCase();
+    return QA.filter(({ q: question, a }) =>
+      question.toLowerCase().includes(q) || a.toLowerCase().includes(q),
+    );
+  }, [query]);
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+    <section id="faq" className="py-24 relative bg-white">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-            Frequently Asked Questions
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <span className="inline-block text-xs font-semibold tracking-widest text-brand-600 uppercase mb-3">
+            FAQ
+          </span>
+          <h2 className="text-3xl md:text-5xl font-bold text-ink-900 font-display">
+            Answers, before you ask.
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Find answers to common questions about EduSmart360. Can't find what you're looking for? 
-            Contact our support team for personalized assistance.
+          <p className="text-ink-500 mt-4 text-lg">
+            Still curious? Hit us up via the contact form.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleFAQ(index)}
-                  className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <span className="font-semibold text-gray-900 text-lg pr-4">
-                    {faq.question}
-                  </span>
-                  {openIndex === index ? (
-                    <Minus className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                  ) : (
-                    <Plus className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                  )}
-                </button>
-                
-                {openIndex === index && (
-                  <div className="px-8 pb-6">
-                    <div className="border-t border-gray-100 pt-4">
-                      <p className="text-gray-600 leading-relaxed">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+        <div className="max-w-2xl mx-auto mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search questions…"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white text-ink-900 placeholder:text-ink-300 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            />
           </div>
         </div>
 
-        {/* Still have questions CTA */}
-        <div className="text-center mt-16">
-          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl mx-auto border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Still have questions?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Our support team is here to help you understand how EduSmart360 can work for your institution.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-semibold">
-                Contact Support
-              </button>
-              <button className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg hover:bg-blue-600 hover:text-white transition-colors duration-300 font-semibold">
-                Schedule a Call
-              </button>
+        <div className="max-w-2xl mx-auto space-y-2">
+          {filtered.length === 0 && (
+            <div className="text-center py-8 text-ink-500">
+              No questions match "{query}".
             </div>
-          </div>
+          )}
+          {filtered.map((item, i) => {
+            const open = openIdx === i;
+            return (
+              <div
+                key={item.q}
+                className={`rounded-2xl border transition-all ${
+                  open
+                    ? 'border-brand-200 bg-gradient-to-br from-brand-50/40 to-white shadow-card-soft'
+                    : 'border-slate-100 bg-white hover:border-slate-200'
+                }`}
+              >
+                <button
+                  onClick={() => setOpenIdx(open ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+                  aria-expanded={open}
+                >
+                  <span className="font-semibold text-ink-900">{item.q}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-ink-500 transition-transform flex-shrink-0 ${
+                      open ? 'rotate-180 text-brand-600' : ''
+                    }`}
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {open && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-4 pt-0 text-ink-700 text-[15px] leading-relaxed">
+                        {item.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
   );
-};
-
-export default FAQ;
+}

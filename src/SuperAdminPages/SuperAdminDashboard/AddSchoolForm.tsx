@@ -1,848 +1,416 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Add School (Tenant) — wired to `POST /superadmin/tenants`.
+ *
+ * 3-step wizard mirroring the backend's `TenantRegistrationRequest` shape:
+ *   1. School info (name, subdomain, contact)
+ *   2. Address
+ *   3. Plan + initial admin user
+ *
+ * Validation runs per-step so users only fix what's relevant.
+ */
 
-interface AdminUser {
-  username: string;
-  password: string;
-  email: string;
-  fullName: string;
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Grid,
+  MenuItem,
+  Paper,
+  Step,
+  StepLabel,
+  Stepper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { ArrowBack, ArrowForward, Check, School as SchoolIcon } from '@mui/icons-material';
+import superAdminTenantService from '../../services/superAdminTenant.service';
+import type {
+  SubscriptionPlan,
+  TenantRegistrationRequest,
+} from '../../types/tenant';
+
+const STEPS = ['School info', 'Address', 'Plan & admin'] as const;
+
+const PLANS: Array<{ value: SubscriptionPlan; label: string; tagline: string }> = [
+  { value: 'TRIAL', label: 'Trial', tagline: 'Free for 30 days' },
+  { value: 'BASIC', label: 'Basic', tagline: 'Small schools' },
+  { value: 'STANDARD', label: 'Standard', tagline: 'Most popular' },
+  { value: 'PREMIUM', label: 'Premium', tagline: 'Full feature set' },
+  { value: 'ENTERPRISE', label: 'Enterprise', tagline: 'Custom limits' },
+];
+
+interface FormErrors {
+  [key: string]: string | undefined;
 }
 
-interface SchoolAnalytics {
-  totalStudents?: number;
-  totalTeachers?: number;
-  avgAttendance?: number;
-  lastUpdated?: string;
-}
-
-interface School {
-  id: number;
-  name: string;
-  schoolCode: string;
-  type: string;
-  board: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  contactEmail: string;
-  contactPhone: string;
-  website?: string;
-  establishedYear?: number;
-  principalName?: string;
-  totalClassrooms?: number;
-  hasTransportation?: boolean;
-  hasCafeteria?: boolean;
-  analytics?: SchoolAnalytics;
-  adminUser: AdminUser;
-}
-
-const initialSchoolState: Omit<School, 'id'> = {
+const emptyForm: TenantRegistrationRequest = {
   name: '',
-  schoolCode: '',
-  type: 'school',
-  board: 'CBSE', // Default to CBSE, can be changed
+  subdomain: '',
   email: '',
   phone: '',
   address: '',
   city: '',
   state: '',
-  pincode: '',
-  contactEmail: '',
-  contactPhone: '',
+  country: 'India',
+  postalCode: '',
+  subscriptionPlan: 'TRIAL',
   website: '',
-  establishedYear: new Date().getFullYear(),
-  principalName: '',
-  totalClassrooms: 0,
-  hasTransportation: false,
-  hasCafeteria: false,
-
-  analytics: {
-    totalStudents: 0,
-    totalTeachers: 0,
-    avgAttendance: 0,
-    lastUpdated: new Date().toISOString()
-  },
-  adminUser: {
-    username: '',
-    password: '',
-    email: '',
-    fullName: ''
-  }
+  userRequest: { firstName: '', middleName: '', lastName: '', email: '', phone: '' },
+  configuration: {},
+  createDefaultClasses: true,
+  studentLoginRequired: false,
 };
 
-const AddSchoolForm: React.FC = () => {
-  const [schools, setSchools] = useState<School[]>([]);
-  const [newSchool, setNewSchool] = useState<Omit<School, 'id'>>(initialSchoolState);
-  const [editingId, setEditingId] = useState<number | null>(null);
+function validateStep(step: number, form: TenantRegistrationRequest): FormErrors {
+  const e: FormErrors = {};
+  if (step === 0) {
+    if (!form.name.trim()) e.name = 'School name is required';
+    else if (form.name.trim().length < 3) e.name = 'At least 3 characters';
+    if (!form.subdomain.trim()) e.subdomain = 'Subdomain is required';
+    else if (!/^[a-z0-9-]+$/.test(form.subdomain)) e.subdomain = 'lowercase letters, numbers, hyphens only';
+    if (!form.email.trim()) e.email = 'Email is required';
+    else if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = 'Invalid email';
+    if (!form.phone.trim()) e.phone = 'Phone is required';
+    else if (!/^[0-9]{10}$/.test(form.phone)) e.phone = 'Must be 10 digits';
+  }
+  if (step === 1) {
+    if (!form.address.trim()) e.address = 'Address is required';
+    if (!form.city.trim()) e.city = 'City is required';
+    if (!form.state.trim()) e.state = 'State is required';
+    if (!form.country.trim()) e.country = 'Country is required';
+    if (form.postalCode && !/^[A-Z0-9]{3,10}$/i.test(form.postalCode))
+      e.postalCode = 'Invalid postal code';
+  }
+  if (step === 2) {
+    if (!form.subscriptionPlan) e.subscriptionPlan = 'Pick a plan';
+    const u = form.userRequest;
+    if (!u.firstName.trim()) e.firstName = 'First name is required';
+    if (!u.lastName.trim()) e.lastName = 'Last name is required';
+    if (!u.email.trim()) e.userEmail = 'Admin email is required';
+    else if (!/^\S+@\S+\.\S+$/.test(u.email)) e.userEmail = 'Invalid email';
+    if (!u.phone.trim()) e.userPhone = 'Admin phone is required';
+    else if (!/^[0-9]{10}$/.test(u.phone)) e.userPhone = 'Must be 10 digits';
+  }
+  return e;
+}
 
-  useEffect(() => {
-    console.log('SchoolDashboard mounted');
-    return () => console.log('SchoolDashboard unmounted');
-  }, []);
+export default function AddSchoolForm() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<TenantRegistrationRequest>(emptyForm);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const inputValue = type === 'number' ? Number(value) : value;
-    
-    if (name === 'adminUsername' || name === 'adminPassword' || 
-        name === 'adminEmail' || name === 'adminFullName') {
-      const adminField = name.replace('admin', '').toLowerCase() as keyof AdminUser;
-      setNewSchool(prev => ({
-        ...prev,
-        adminUser: {
-          ...prev.adminUser,
-          [adminField]: value
-        }
-      }));
-    } else if (name === 'hasTransportation' || name === 'hasCafeteria') {
-      setNewSchool(prev => ({
-        ...prev,
-        [name]: (e.target as HTMLInputElement).checked
-      }));
+  const isLast = step === STEPS.length - 1;
+
+  const updateField = <K extends keyof TenantRegistrationRequest>(
+    key: K,
+    value: TenantRegistrationRequest[K],
+  ) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateUser = <K extends keyof TenantRegistrationRequest['userRequest']>(
+    key: K,
+    value: TenantRegistrationRequest['userRequest'][K],
+  ) => {
+    setForm((prev) => ({ ...prev, userRequest: { ...prev.userRequest, [key]: value } }));
+  };
+
+  const handleNext = () => {
+    const e = validateStep(step, form);
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+    if (isLast) {
+      void submit();
     } else {
-      setNewSchool(prev => ({
-        ...prev,
-        [name]: inputValue
-      }));
+      setStep((s) => s + 1);
     }
   };
 
-  const resetForm = () => {
-    setNewSchool({
-      ...initialSchoolState,
-      // Reset analytics with current timestamp
-      analytics: {
-        totalStudents: 0,
-        totalTeachers: 0,
-        avgAttendance: 0,
-        lastUpdated: new Date().toISOString()
-      },
-      // Reset admin user
-      adminUser: {
-        username: '',
-        password: '',
-        email: '',
-        fullName: ''
-      },
-      // Reset facilities
-     
-    });
-    setEditingId(null);
-  };
+  const handleBack = () => setStep((s) => Math.max(0, s - 1));
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Required fields validation
-    const requiredFields = [
-      'name', 'email', 'phone', 'address', 'city', 'state', 'pincode',
-      'contactEmail', 'contactPhone', 'schoolCode', 'board'
-    ];
-    
-    const missingFields = requiredFields.filter(field => !newSchool[field as keyof typeof newSchool]);
-    
-    // Validate admin user fields
-    const requiredAdminFields = ['username', 'email', 'fullName', 'password'];
-    const missingAdminFields = requiredAdminFields.filter(
-      field => !newSchool.adminUser[field as keyof AdminUser]
-    );
-    
-    if (missingFields.length > 0 || missingAdminFields.length > 0) {
-      const missingFieldsList = [
-        ...missingFields,
-        ...missingAdminFields.map(field => `Admin ${field}`)
-      ].join(', ');
-      
-      alert(`Please fill in all required fields: ${missingFieldsList}`);
-      return;
-    }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newSchool.email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
-    
-    // Validate contact phone
-    const phoneRegex = /^[0-9\-+()\s]+$/;
-    if (!phoneRegex.test(newSchool.phone) || !phoneRegex.test(newSchool.contactPhone)) {
-      alert('Please enter a valid phone number');
-      return;
-    }
-    
-    // Update or add school
-    const updatedSchool = {
-      ...newSchool,
-      // Ensure all analytics fields are numbers
-      analytics: {
-        totalStudents: Number(newSchool.analytics?.totalStudents) || 0,
-        totalTeachers: Number(newSchool.analytics?.totalTeachers) || 0,
-        avgAttendance: Number(newSchool.analytics?.avgAttendance) || 0,
-        lastUpdated: new Date().toISOString()
-      },
-    };
-    
-    if (editingId !== null) {
-      setSchools(schools.map(school => 
-        school.id === editingId ? { ...updatedSchool, id: editingId } : school
-      ));
-    } else {
-      setSchools([...schools, { ...updatedSchool, id: Date.now() }]);
-    }
-    
-    resetForm();
-  };
-
-  const handleEdit = (school: School) => {
-    setNewSchool({
-      name: school.name,
-      schoolCode: school.schoolCode,
-      type: school.type,
-      board: school.board,
-      email: school.email,
-      phone: school.phone,
-      address: school.address,
-      city: school.city,
-      state: school.state,
-      pincode: school.pincode,
-      contactEmail: school.contactEmail,
-      contactPhone: school.contactPhone,
-      website: school.website || '',
-      establishedYear: school.establishedYear || new Date().getFullYear(),
-      principalName: school.principalName || '',
-      totalClassrooms: school.totalClassrooms || 0,
-      hasTransportation: school.hasTransportation || false,
-      hasCafeteria: school.hasCafeteria || false,
-
-      analytics: {
-        totalStudents: school.analytics?.totalStudents || 0,
-        totalTeachers: school.analytics?.totalTeachers || 0,
-        avgAttendance: school.analytics?.avgAttendance || 0,
-        lastUpdated: school.analytics?.lastUpdated || new Date().toISOString()
-      },
-      adminUser: { 
-        username: school.adminUser?.username || '',
-        email: school.adminUser?.email || '',
-        fullName: school.adminUser?.fullName || '',
-        password: school.adminUser?.password || ''
-      }
-    });
-    setEditingId(school.id);
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this school?')) {
-      setSchools(schools.filter(school => school.id !== id));
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await superAdminTenantService.create(form);
+      toast.success(response.message || `${form.name} created`);
+      navigate(`/dashboard/schools/${response.tenant.id}`);
+    } catch (err) {
+      const msg = (err as { message?: string }).message || 'Failed to create school';
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // Simple test to check if component renders
-  console.log('Rendering SchoolDashboard');
-  
   return (
-    <div className="form-page">
-      <div className="form-container">
-        <h1>{editingId !== null ? 'Edit School' : 'Add New School'}</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>School Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={newSchool.name}
-                onChange={handleInputChange}
-                required
-                placeholder="Enter school name"
-              />
-            </div>
+    <Box sx={{ maxWidth: 920, mx: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 2,
+            background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mr: 2,
+            boxShadow: '0 12px 32px -12px rgba(37,99,235,0.5)',
+          }}
+        >
+          <SchoolIcon />
+        </Box>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Onboard a new school
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Three quick steps and you're done.
+          </Typography>
+        </Box>
+      </Box>
 
-            <div className="form-group">
-              <label>School Code *</label>
-              <input
-                type="text"
-                name="schoolCode"
-                value={newSchool.schoolCode}
-                onChange={handleInputChange}
-                required
-                placeholder="e.g., SC12345"
-              />
-            </div>
-          </div>
+      <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 3 }} elevation={0} variant="outlined">
+        <Stepper activeStep={step} sx={{ mb: 4 }}>
+          {STEPS.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>School Type *</label>
-              <select
-                name="type"
-                value={newSchool.type}
-                onChange={handleInputChange}
-                className="form-control"
-                required
-              >
-                <option value="school">School</option>
-                <option value="college">College</option>
-                <option value="university">University</option>
-                <option value="coaching">Coaching Institute</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Education Board *</label>
-              <select
-                name="board"
-                value={newSchool.board}
-                onChange={handleInputChange}
-                className="form-control"
-                required
-              >
-                <option value="CBSE">CBSE</option>
-                <option value="ICSE">ICSE</option>
-                <option value="State Board">State Board</option>
-                <option value="IB">International Baccalaureate</option>
-                <option value="IGCSE">IGCSE</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Established Year</label>
-              <input
-                type="number"
-                name="establishedYear"
-                value={newSchool.establishedYear}
-                onChange={handleInputChange}
-                min="1900"
-                max={new Date().getFullYear()}
-                placeholder="Established year"
+        {step === 0 && (
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="School name" required
+                value={form.name}
+                onChange={(e) => updateField('name', e.target.value)}
+                error={!!errors.name} helperText={errors.name}
               />
-            </div>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Subdomain" required
+                value={form.subdomain}
+                onChange={(e) => updateField('subdomain', e.target.value.toLowerCase())}
+                error={!!errors.subdomain}
+                helperText={errors.subdomain || 'will become subdomain.schoolconnect.com'}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Contact email" required type="email"
+                value={form.email}
+                onChange={(e) => updateField('email', e.target.value)}
+                error={!!errors.email} helperText={errors.email}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Contact phone" required
+                value={form.phone}
+                onChange={(e) => updateField('phone', e.target.value.replace(/\D/g, ''))}
+                error={!!errors.phone} helperText={errors.phone || '10-digit number'}
+                inputProps={{ maxLength: 10 }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth label="Website (optional)"
+                value={form.website || ''}
+                onChange={(e) => updateField('website', e.target.value)}
+                placeholder="https://..."
+              />
+            </Grid>
+          </Grid>
+        )}
 
-            <div className="form-group">
-              <label>Principal Name</label>
-              <input
-                type="text"
-                name="principalName"
-                value={newSchool.principalName}
-                onChange={handleInputChange}
-                placeholder="Principal's full name"
+        {step === 1 && (
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth label="Address" required multiline rows={2}
+                value={form.address}
+                onChange={(e) => updateField('address', e.target.value)}
+                error={!!errors.address} helperText={errors.address}
               />
-            </div>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={newSchool.email}
-                onChange={handleInputChange}
-                required
-                placeholder="Enter school email"
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="City" required
+                value={form.city}
+                onChange={(e) => updateField('city', e.target.value)}
+                error={!!errors.city} helperText={errors.city}
               />
-            </div>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="State" required
+                value={form.state}
+                onChange={(e) => updateField('state', e.target.value)}
+                error={!!errors.state} helperText={errors.state}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Country" required
+                value={form.country}
+                onChange={(e) => updateField('country', e.target.value)}
+                error={!!errors.country} helperText={errors.country}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Postal code"
+                value={form.postalCode}
+                onChange={(e) => updateField('postalCode', e.target.value.toUpperCase())}
+                error={!!errors.postalCode} helperText={errors.postalCode}
+              />
+            </Grid>
+          </Grid>
+        )}
 
-            <div className="form-group">
-              <label>Website</label>
-              <input
-                type="url"
-                name="website"
-                value={newSchool.website || ''}
-                onChange={handleInputChange}
-                placeholder="https://example.com"
-              />
-            </div>
-          </div>
+        {step === 2 && (
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              Subscription plan
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+              {PLANS.map((p) => {
+                const selected = form.subscriptionPlan === p.value;
+                return (
+                  <Box
+                    key={p.value}
+                    onClick={() => updateField('subscriptionPlan', p.value)}
+                    sx={{
+                      cursor: 'pointer',
+                      border: '2px solid',
+                      borderColor: selected ? 'primary.main' : 'divider',
+                      borderRadius: 2,
+                      p: 1.5,
+                      minWidth: 140,
+                      flex: '0 0 auto',
+                      transition: 'all 150ms',
+                      background: selected ? 'rgba(37,99,235,0.06)' : 'transparent',
+                      '&:hover': { borderColor: 'primary.light' },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {p.label}
+                      </Typography>
+                      {selected && <Check fontSize="small" color="primary" />}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {p.tagline}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Phone *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={newSchool.phone}
-                onChange={handleInputChange}
-                required
-                placeholder="Enter contact number"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Contact Phone *</label>
-              <input
-                type="tel"
-                name="contactPhone"
-                value={newSchool.contactPhone}
-                onChange={handleInputChange}
-                required
-                placeholder="Alternative contact number"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Address *</label>
-            <textarea
-              name="address"
-              value={newSchool.address}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter full address"
-              rows={2}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>City *</label>
-              <input
-                type="text"
-                name="city"
-                value={newSchool.city}
-                onChange={handleInputChange}
-                required
-                placeholder="City"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>State *</label>
-              <input
-                type="text"
-                name="state"
-                value={newSchool.state}
-                onChange={handleInputChange}
-                required
-                placeholder="State"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Pincode *</label>
-              <input
-                type="text"
-                name="pincode"
-                value={newSchool.pincode}
-                onChange={handleInputChange}
-                required
-                placeholder="Postal code"
-              />
-            </div>
-          </div>
-
-          <h3>School Facilities</h3>
-          <div className="form-row">
-            <div className="form-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="hasTransportation"
-                  checked={newSchool.hasTransportation || false}
-                  onChange={handleInputChange}
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+              Initial admin user
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              The login credentials will be sent to this admin's email after creation.
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth label="First name" required
+                  value={form.userRequest.firstName}
+                  onChange={(e) => updateUser('firstName', e.target.value)}
+                  error={!!errors.firstName} helperText={errors.firstName}
                 />
-                Transportation Available
-              </label>
-            </div>
-
-            <div className="form-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="hasCafeteria"
-                  checked={newSchool.hasCafeteria || false}
-                  onChange={handleInputChange}
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth label="Middle name"
+                  value={form.userRequest.middleName || ''}
+                  onChange={(e) => updateUser('middleName', e.target.value)}
                 />
-                Cafeteria Available
-              </label>
-            </div>
-          </div>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth label="Last name" required
+                  value={form.userRequest.lastName}
+                  onChange={(e) => updateUser('lastName', e.target.value)}
+                  error={!!errors.lastName} helperText={errors.lastName}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth label="Admin email" required type="email"
+                  value={form.userRequest.email}
+                  onChange={(e) => updateUser('email', e.target.value)}
+                  error={!!errors.userEmail} helperText={errors.userEmail}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth label="Admin phone" required
+                  value={form.userRequest.phone}
+                  onChange={(e) => updateUser('phone', e.target.value.replace(/\D/g, ''))}
+                  error={!!errors.userPhone} helperText={errors.userPhone || '10-digit number'}
+                  inputProps={{ maxLength: 10 }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  select fullWidth label="Create default classes (1-12)?"
+                  value={form.createDefaultClasses ? 'yes' : 'no'}
+                  onChange={(e) => updateField('createDefaultClasses', e.target.value === 'yes')}
+                  helperText="Pre-creates classes 1 through 12 with one default section each."
+                >
+                  <MenuItem value="yes">Yes — create classes 1-12</MenuItem>
+                  <MenuItem value="no">No — I'll add them later</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
 
-          <h3>Analytics</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Total Students</label>
-              <input
-                type="number"
-                name="analytics.totalStudents"
-                value={newSchool.analytics?.totalStudents || 0}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 0;
-                  setNewSchool(prev => ({
-                    ...prev,
-                    analytics: {
-                      ...prev.analytics,
-                      totalStudents: value,
-                      lastUpdated: new Date().toISOString()
-                    }
-                  }));
-                }}
-                min="0"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Total Teachers</label>
-              <input
-                type="number"
-                name="analytics.totalTeachers"
-                value={newSchool.analytics?.totalTeachers || 0}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 0;
-                  setNewSchool(prev => ({
-                    ...prev,
-                    analytics: {
-                      ...prev.analytics,
-                      totalTeachers: value,
-                      lastUpdated: new Date().toISOString()
-                    }
-                  }));
-                }}
-                min="0"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Average Attendance (%)</label>
-              <input
-                type="number"
-                name="analytics.avgAttendance"
-                value={newSchool.analytics?.avgAttendance || 0}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 0;
-                  setNewSchool(prev => ({
-                    ...prev,
-                    analytics: {
-                      ...prev.analytics,
-                      avgAttendance: Math.min(100, Math.max(0, value)),
-                      lastUpdated: new Date().toISOString()
-                    }
-                  }));
-                }}
-                min="0"
-                max="100"
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label>Phone *</label>
-            <input
-              type="tel"
-              name="phone"
-              value={newSchool.phone}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter contact number"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Address *</label>
-            <textarea
-              name="address"
-              value={newSchool.address}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter full address"
-              rows={3}
-            />
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label>City *</label>
-              <input
-                type="text"
-                name="city"
-                value={newSchool.city}
-                onChange={handleInputChange}
-                required
-                placeholder="City"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>State *</label>
-              <input
-                type="text"
-                name="state"
-                value={newSchool.state}
-                onChange={handleInputChange}
-                required
-                placeholder="State"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Pincode *</label>
-              <input
-                type="text"
-                name="pincode"
-                value={newSchool.pincode}
-                onChange={handleInputChange}
-                required
-                placeholder="Postal code"
-              />
-            </div>
-          </div>
-
-          <h3>Admin User Details</h3>
-          
-          <div className="form-group">
-            <label>Admin Username *</label>
-            <input
-              type="text"
-              name="adminUsername"
-              value={newSchool.adminUser.username}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter admin username"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Admin Full Name *</label>
-            <input
-              type="text"
-              name="adminFullName"
-              value={newSchool.adminUser.fullName}
-              onChange={(e) => {
-                setNewSchool(prev => ({
-                  ...prev,
-                  adminUser: {
-                    ...prev.adminUser,
-                    fullName: e.target.value
-                  }
-                }));
-              }}
-              required
-              placeholder="Enter admin full name"
-              style={{
-                width: '100%',
-                padding: '0.625rem 0.875rem',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                fontSize: '0.9375rem',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
-              
-              }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Admin Email *</label>
-            <input
-              type="email"
-              name="adminEmail"
-              value={newSchool.adminUser.email}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter admin email"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Admin Password *</label>
-            <input
-              type="password"
-              name="adminPassword"
-              value={newSchool.adminUser.password}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter admin password"
-            />
-          </div>
-          
-          <div className="form-actions">
-            <button 
-              type="submit" 
-              className="btn-primary"
-              style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                color: 'white',
-                border: 'none',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in-out',
-                boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.06)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                minWidth: '140px',
-            
+        {/* Footer */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          <Button startIcon={<ArrowBack />} onClick={handleBack} disabled={step === 0 || submitting}>
+            Back
+          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Chip label={`Step ${step + 1} of ${STEPS.length}`} size="small" variant="outlined" />
+            <Button
+              variant="contained"
+              endIcon={isLast ? undefined : <ArrowForward />}
+              onClick={handleNext}
+              disabled={submitting}
+              sx={{
+                textTransform: 'none',
+                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
+                minWidth: 140,
+                '&:hover': { background: 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)' },
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              {editingId !== null ? 'Update School' : 'Add School'}
-            </button>
-            
-            {editingId !== null && (
-              <button 
-                type="button" 
-                className="btn-secondary"
-                onClick={resetForm}
-                style={{
-                  background: 'white',
-                  color: '#4f46e5',
-                  border: '1px solid #e0e7ff',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  
-                }}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-      
-      <style>{`
-        .form-page {
-          display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          min-height: 100vh;
-          padding: 0.5rem 2rem 2rem;
-          background-color: #f5f7fa;
-        }
-        
-        .form-container {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          padding: 2rem;
-          width: 100%;
-          max-width: 700px;
-        }
-        
-        h1 {
-          color: #2d3748;
-          margin-bottom: 1.5rem;
-          font-size: 1.5rem;
-          font-weight: 600;
-          text-align: center;
-        }
-        
-        .form-group {
-          margin-bottom: 1.25rem;
-        }
-        
-        .form-group label {
-          display: block;
-          margin-bottom: 0.5rem;
-          font-weight: 500;
-          color: #4a5568;
-          font-size: 0.9375rem;
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-          width: 100%;
-          padding: 0.625rem 0.875rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          font-size: 0.9375rem;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-          outline: none;
-          border-color: #3182ce;
-          box-shadow: 0 0 0 1px #3182ce;
-        }
-        
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
-          color: #a0aec0;
-        }
-        
-        .form-group textarea {
-          min-height: 80px;
-          resize: vertical;
-        }
-        
-        .form-group select[multiple] {
-          min-height: 120px;
-          padding: 8px;
-        }
-        
-        .checkbox-group {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .checkbox-group input[type="checkbox"] {
-          width: auto;
-          margin: 0;
-        }
-        
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 30px;
-          padding-top: 20px;
-          border-top: 1px solid #eee;
-        }
-        
-        h1, h2, h3 {
-          color: #333;
-          margin: 25px 0 15px;
-        }
-        
-        h1 {
-          font-size: 24px;
-          color: #2c3e50;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #eee;
-        }
-        
-        h3 {
-          font-size: 18px;
-          color: #2c3e50;
-          padding-top: 10px;
-          border-top: 1px solid #eee;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .form-row {
-            flex-direction: column;
-            gap: 15px;
-          }
-          
-          .form-actions {
-            flex-direction: column;
-          }
-          
-          .btn-primary, .btn-secondary, .btn-danger {
-            width: 100%;
-          }
-        }
-      `}</style>
-    </div>
+              {submitting ? (
+                <CircularProgress size={20} sx={{ color: 'white' }} />
+              ) : isLast ? (
+                'Create School'
+              ) : (
+                'Continue'
+              )}
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
-};
-
-export default AddSchoolForm;
+}

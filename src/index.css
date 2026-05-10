@@ -119,3 +119,42 @@ html {
     scroll-behavior: auto;
   }
 }
+
+/* ---- Print stylesheet --------------------------------------------------- */
+/* Pages that want a clean printout (profile / report) wrap their content in
+   .print-area and add .print-hide to anything that should disappear (sidebar,
+   topbar, action buttons, etc.). */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000 !important;
+  }
+  /* Hide chrome — sidebar, topbar, banners, drawers. */
+  .print-hide,
+  aside,
+  header,
+  [role="banner"],
+  [role="navigation"],
+  .Toastify__toast-container {
+    display: none !important;
+  }
+  /* Make the printable area span the page. */
+  main,
+  .print-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+  /* Don't break a card across pages if avoidable. */
+  .print-area > * {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Crisp borders. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

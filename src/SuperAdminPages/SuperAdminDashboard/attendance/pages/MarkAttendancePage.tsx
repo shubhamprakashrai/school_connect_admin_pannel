@@ -1,312 +1,266 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Mark attendance — wired to `POST /student/attendance/bulk`.
+ *
+ * Pick class → section → date → roster loads → toggle each student → submit.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Container, 
-  Paper, 
-  Typography, 
-  TextField, 
-  Button, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Radio, 
-  FormControlLabel, 
-  RadioGroup, 
-  Box, 
-  IconButton,
-  Snackbar,
-  Alert,
-  MenuItem,
-  CircularProgress
+import { toast } from 'react-toastify';
+import {
+  Avatar, Box, Button, Chip, CircularProgress, Grid, MenuItem, Paper, Stack, Table,
+  TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton,
+  ToggleButtonGroup, Typography,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { dummyStudents } from '../data/dummyStudents';
-import { classSections } from '../data/dummyStudents';
-import { AttendanceStatus, StudentAttendance } from '../types/attendance';
-import { initializeStudentAttendance } from '../utils/attendanceHelpers';
+import { CheckCircle, EventAvailable, Save, Today } from '@mui/icons-material';
+import schoolClassService, { sectionService } from '../../../../services/schoolClass.service';
+import studentService from '../../../../services/student.service';
+import { studentAttendanceService } from '../../../../services/attendance.service';
+import { useAcademicYear } from '../../../../contexts/AcademicYearContext';
+import type { SchoolClassResponse, SectionResponse } from '../../../../types/schoolClass';
+import type { StudentResponse } from '../../../../types/student';
+import type {
+  BulkAttendanceRecord, StudentAttendanceStatus,
+} from '../../../../types/attendance';
 
-const MarkAttendancePage: React.FC = () => {
+const STATUS_OPTS: { value: StudentAttendanceStatus; label: string; color: string }[] = [
+  { value: 'PRESENT', label: 'P', color: '#10b981' },
+  { value: 'ABSENT', label: 'A', color: '#ef4444' },
+  { value: 'LATE', label: 'L', color: '#f59e0b' },
+  { value: 'HALF_DAY', label: 'H', color: '#06b6d4' },
+  { value: 'LEAVE', label: 'Lv', color: '#a855f7' },
+  { value: 'EXCUSED', label: 'E', color: '#6366f1' },
+];
+
+export default function MarkAttendancePage() {
   const navigate = useNavigate();
-  const today = format(new Date(), 'yyyy-MM-dd');
-  
-  const [date, setDate] = useState(today);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSection, setSelectedSection] = useState('');
-  const [students, setStudents] = useState<StudentAttendance[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error' | 'info' | 'warning'
-  });
+  const { active: activeYear } = useAcademicYear();
 
-  // Get unique classes
-  const classes = Array.from(new Set(classSections.map(cs => cs.className)));
-  
-  // Get sections based on selected class
-  const sections = classSections
-    .filter(cs => cs.className === selectedClass)
-    .map(cs => cs.section);
+  const [classes, setClasses] = useState<SchoolClassResponse[]>([]);
+  const [sections, setSections] = useState<SectionResponse[]>([]);
+  const [classId, setClassId] = useState('');
+  const [sectionId, setSectionId] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
-  // Filter students based on selected class and section
+  const [students, setStudents] = useState<StudentResponse[]>([]);
+  const [marks, setMarks] = useState<Record<string, StudentAttendanceStatus>>({});
+  const [remarks, setRemarks] = useState<Record<string, string>>({});
+  const [loadingRoster, setLoadingRoster] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
-    if (selectedClass && selectedSection) {
-      const filteredStudents = dummyStudents.filter(
-        student => student.class === selectedClass && student.section === selectedSection
-      );
-      setStudents(initializeStudentAttendance(filteredStudents));
-    } else {
-      setStudents([]);
-    }
-  }, [selectedClass, selectedSection]);
+    schoolClassService.list().then(setClasses).catch(() => setClasses([]));
+  }, []);
 
-  const handleClassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedClass(e.target.value);
-    setSelectedSection('');
+  useEffect(() => {
+    if (!classId) { setSections([]); setSectionId(''); return; }
+    sectionService.byClass(classId).then(setSections).catch(() => setSections([]));
+    setSectionId('');
+  }, [classId]);
+
+  useEffect(() => {
+    if (!sectionId) { setStudents([]); setMarks({}); return; }
+    setLoadingRoster(true);
+    studentService.bySection(sectionId)
+      .then((roster) => {
+        setStudents(roster);
+        // Default all to PRESENT — saves clicks for the common case.
+        const defaults: Record<string, StudentAttendanceStatus> = {};
+        roster.forEach((s) => { defaults[s.id] = 'PRESENT'; });
+        setMarks(defaults);
+      })
+      .catch((err) => toast.error(err.message || 'Failed to load students'))
+      .finally(() => setLoadingRoster(false));
+  }, [sectionId]);
+
+  const setMark = (studentId: string, status: StudentAttendanceStatus) =>
+    setMarks((prev) => ({ ...prev, [studentId]: status }));
+
+  const setAll = (status: StudentAttendanceStatus) => {
+    const all: Record<string, StudentAttendanceStatus> = {};
+    students.forEach((s) => { all[s.id] = status; });
+    setMarks(all);
   };
 
-  const handleSectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedSection(e.target.value);
-  };
+  const counts = useMemo(() => {
+    const c: Record<StudentAttendanceStatus, number> = {
+      PRESENT: 0, ABSENT: 0, LATE: 0, HALF_DAY: 0, LEAVE: 0, EXCUSED: 0,
+    };
+    Object.values(marks).forEach((s) => { c[s] = (c[s] || 0) + 1; });
+    return c;
+  }, [marks]);
 
-  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-    setStudents(prevStudents =>
-      prevStudents.map(student =>
-        student.studentId === studentId ? { ...student, status } : student
-      )
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!date || !selectedClass || !selectedSection) {
-      setSnackbar({
-        open: true,
-        message: 'Please fill in all required fields',
-        severity: 'error'
+  const submit = async () => {
+    if (!sectionId || !date) { toast.error('Pick a section and date'); return; }
+    if (!activeYear) { toast.error('No active academic year — set one first'); return; }
+    if (students.length === 0) { toast.error('No students in this section'); return; }
+    setSubmitting(true);
+    try {
+      const records: BulkAttendanceRecord[] = students.map((s) => ({
+        studentId: s.id,
+        status: marks[s.id] || 'PRESENT',
+        remarks: remarks[s.id],
+      }));
+      await studentAttendanceService.markBulk({
+        attendanceDate: date,
+        sectionId,
+        academicYearId: activeYear.id,
+        attendanceRecords: records,
       });
-      return;
+      toast.success('Attendance saved');
+      navigate('/dashboard/attendance');
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Save failed');
+    } finally {
+      setSubmitting(false);
     }
-
-    if (students.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'No students found for the selected class and section',
-        severity: 'warning'
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      try {
-        // Get existing records from localStorage
-        const existingRecords = JSON.parse(localStorage.getItem('attendanceRecords') || '[]');
-        
-        // Create new attendance record
-        const newRecord = {
-          id: `att-${Date.now()}`,
-          date,
-          class: selectedClass,
-          section: selectedSection,
-          students,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Add new record to existing ones
-        const updatedRecords = [...existingRecords, newRecord];
-        
-        // Save to localStorage
-        localStorage.setItem('attendanceRecords', JSON.stringify(updatedRecords));
-        
-        setSnackbar({
-          open: true,
-          message: 'Attendance marked successfully!',
-          severity: 'success'
-        });
-        
-        // Reset form
-        setSelectedClass('');
-        setSelectedSection('');
-        setStudents([]);
-        
-        // Navigate back to list after a short delay
-        setTimeout(() => {
-          navigate('/attendance');
-        }, 1500);
-      } catch (error) {
-        console.error('Error saving attendance:', error);
-        setSnackbar({
-          open: true,
-          message: 'Failed to save attendance. Please try again.',
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    }, 800);
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate(-1)} sx={{ mr: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" component="h1">
-          Mark Attendance
-        </Typography>
+        <Box sx={{
+          width: 56, height: 56, borderRadius: 2, color: 'white', mr: 2,
+          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 12px 32px -12px rgba(16,185,129,0.5)',
+        }}>
+          <EventAvailable />
+        </Box>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>Mark attendance</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {activeYear ? `Academic year: ${activeYear.name}` : 'No active academic year set'}
+          </Typography>
+        </Box>
       </Box>
-      
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <form onSubmit={handleSubmit}>
-          <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(250px, 1fr))" gap={3} mb={4}>
-            <TextField
-              label="Date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              fullWidth
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
-            
-            <TextField
-              select
-              label="Class"
-              value={selectedClass}
-              onChange={handleClassChange}
-              required
-              fullWidth
-            >
-              <MenuItem value="">Select Class</MenuItem>
-              {classes.map((cls) => (
-                <MenuItem key={cls} value={cls}>
-                  {cls}
-                </MenuItem>
-              ))}
+
+      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth select label="Class" value={classId}
+              onChange={(e) => setClassId(e.target.value)}>
+              <MenuItem value="">Select class</MenuItem>
+              {classes.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
             </TextField>
-            
-            <TextField
-              select
-              label="Section"
-              value={selectedSection}
-              onChange={handleSectionChange}
-              required
-              fullWidth
-              disabled={!selectedClass}
-            >
-              <MenuItem value="">Select Section</MenuItem>
-              {sections.map((section) => (
-                <MenuItem key={section} value={section}>
-                  {section}
-                </MenuItem>
-              ))}
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth select label="Section" value={sectionId}
+              disabled={!classId} onChange={(e) => setSectionId(e.target.value)}>
+              <MenuItem value="">Select section</MenuItem>
+              {sections.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
             </TextField>
-          </Box>
-          
-          {students.length > 0 && (
-            <TableContainer component={Paper} sx={{ mb: 3 }}>
-              <Table size="small">
-                <TableHead>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField fullWidth type="date" label="Date" InputLabelProps={{ shrink: true }}
+              value={date} onChange={(e) => setDate(e.target.value)}
+              InputProps={{ startAdornment: <Today fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} /> }} />
+          </Grid>
+          <Grid item xs={12} md={3} sx={{ display: 'flex', gap: 1 }}>
+            <Button fullWidth variant="outlined" disabled={students.length === 0}
+              onClick={() => setAll('PRESENT')}>All present</Button>
+            <Button fullWidth variant="outlined" color="warning" disabled={students.length === 0}
+              onClick={() => setAll('ABSENT')}>All absent</Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {!sectionId ? (
+        <Paper variant="outlined" sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
+          <Typography color="text.secondary">Pick a class and section to load the roster.</Typography>
+        </Paper>
+      ) : loadingRoster ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+      ) : students.length === 0 ? (
+        <Paper variant="outlined" sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
+          <Typography color="text.secondary">No students in this section.</Typography>
+        </Paper>
+      ) : (
+        <>
+          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            {STATUS_OPTS.map((s) => (
+              <Chip key={s.value} size="small"
+                label={`${s.label}: ${counts[s.value] || 0}`}
+                sx={{ background: s.color, color: 'white', fontWeight: 600 }} />
+            ))}
+          </Stack>
+
+          <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+            <TableContainer>
+              <Table>
+                <TableHead sx={{ background: 'rgba(16,185,129,0.06)' }}>
                   <TableRow>
-                    <TableCell>Roll No</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell align="center">Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Student</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Remarks</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {students.map((student) => (
-                    <TableRow key={student.studentId}>
-                      <TableCell>{student.rollNo}</TableCell>
-                      <TableCell>{student.name}</TableCell>
-                      <TableCell align="center">
-                        <RadioGroup
-                          row
-                          value={student.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              student.studentId,
-                              e.target.value as AttendanceStatus
-                            )
-                          }
-                        >
-                          <FormControlLabel
-                            value="present"
-                            control={<Radio size="small" color="success" />}
-                            label="Present"
-                          />
-                          <FormControlLabel
-                            value="absent"
-                            control={<Radio size="small" color="error" />}
-                            label="Absent"
-                          />
-                          <FormControlLabel
-                            value="leave"
-                            control={<Radio size="small" color="warning" />}
-                            label="Leave"
-                          />
-                        </RadioGroup>
+                  {students.map((s, i) => (
+                    <TableRow key={s.id} hover>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <Avatar src={s.photoUrl}
+                            sx={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)', width: 36, height: 36 }}>
+                            {(s.firstName || '?').charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {s.fullName || `${s.firstName} ${s.lastName}`}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Roll: {s.rollNumber || '—'}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <ToggleButtonGroup size="small" exclusive
+                          value={marks[s.id] || 'PRESENT'}
+                          onChange={(_, v) => v && setMark(s.id, v)}>
+                          {STATUS_OPTS.map((opt) => (
+                            <ToggleButton key={opt.value} value={opt.value}
+                              sx={{
+                                px: 1, py: 0.25, minWidth: 36, fontWeight: 700, fontSize: 12,
+                                '&.Mui-selected': { background: opt.color, color: 'white' },
+                                '&.Mui-selected:hover': { background: opt.color, opacity: 0.9 },
+                              }}>
+                              {opt.label}
+                            </ToggleButton>
+                          ))}
+                        </ToggleButtonGroup>
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>
+                        <TextField size="small" placeholder="Optional remark"
+                          value={remarks[s.id] || ''}
+                          onChange={(e) => setRemarks((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                          fullWidth />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          )}
-          
-          <Box display="flex" justifyContent="flex-end" gap={2} mt={3}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate(-1)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading || students.length === 0}
-              startIcon={loading ? <CircularProgress size={20} /> : null}
-            >
-              {loading ? 'Saving...' : 'Save Attendance'}
+          </Paper>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 3 }}>
+            <Button onClick={() => navigate('/dashboard/attendance')} disabled={submitting}>Cancel</Button>
+            <Button startIcon={<Save />} variant="contained" disabled={submitting}
+              onClick={submit}
+              sx={{
+                textTransform: 'none', minWidth: 180,
+                background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                boxShadow: '0 8px 24px -8px rgba(16,185,129,0.4)',
+              }}>
+              {submitting ? <CircularProgress size={18} sx={{ color: 'white' }} /> : (
+                <><CheckCircle fontSize="small" sx={{ mr: 0.5 }} /> Save attendance</>
+              )}
             </Button>
           </Box>
-        </form>
-      </Paper>
-      
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleSnackbarClose} 
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+        </>
+      )}
+    </Box>
   );
-};
-
-export default MarkAttendancePage;
+}

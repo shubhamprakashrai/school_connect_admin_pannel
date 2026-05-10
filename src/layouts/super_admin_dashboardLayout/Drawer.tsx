@@ -1,6 +1,21 @@
-import React from 'react';
+/**
+ * Admin / staff sidebar.
+ *
+ * Single-level navigation grouped into sections. Each entry goes straight
+ * to the list page — adding/editing happens via buttons on the list page,
+ * so the sidebar doesn't carry an expandable Add/View pair for everything.
+ *
+ * Items are filtered by the current user's role.
+ */
+
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, UserPlus, BookOpen, BookOpenText, Bell, CalendarCheck, BookOpenCheck } from 'lucide-react';
+import {
+  LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
+  Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
+  Building2, ClipboardCheck, Network, BookOpenText,
+} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DrawerProps {
   isOpen: boolean;
@@ -8,270 +23,157 @@ interface DrawerProps {
   onLogout: () => void;
 }
 
-const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
-  const [expandedItems, setExpandedItems] = React.useState<Record<string, boolean>>({
-    schools: true,
-    students: true,
-    teachers: true,
-    classes: true,
-    subjects: true
-  });
+interface NavItem {
+  key: string;
+  label: string;
+  path: string;
+  icon: ReactNode;
+  exact?: boolean;
+}
 
-  const toggleItem = (key: string) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+interface NavSection {
+  heading: string;
+  items: NavItem[];
+}
+
+const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
+  const { hasRole } = useAuth();
+  const isSuper   = hasRole('SUPERADMIN', 'SUPER_ADMIN');
+  const isAdmin   = hasRole('ADMIN');
+  const isTeacher = hasRole('TEACHER');
+  const canManage = isAdmin || isTeacher || isSuper;
+
+  /** Map of nav keys → whether the current user can see the item. */
+  const can: Record<string, boolean> = {
+    dashboard:           true,
+    calendar:            true,
+    schools:             isSuper,
+    students:            canManage,
+    teachers:            canManage,
+    parents:             isAdmin || isSuper,
+    admins:              isSuper,
+    users:               isSuper,
+    classes:             canManage,
+    subjects:            canManage,
+    academic_years:      isAdmin || isSuper,
+    attendance:          canManage,
+    teacher_attendance:  canManage,
+    class_teachers:      isAdmin || isSuper,
+    assignments:         isAdmin || isSuper,
+    notices:             canManage,
+    exams:               canManage,
+    tenant:              isAdmin || isSuper,
+    settings:            isSuper,
   };
 
-  const menuItems = [
-    { 
-      key: 'dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />, 
-      label: 'Dashboard', 
-      path: '/dashboard',
-      exact: true
+  const SECTIONS: NavSection[] = [
+    {
+      heading: 'Overview',
+      items: [
+        { key: 'dashboard', label: 'Dashboard', path: '/dashboard',          icon: <LayoutDashboard className="w-[18px] h-[18px]" />, exact: true },
+        { key: 'calendar',  label: 'Calendar',  path: '/dashboard/calendar', icon: <CalendarCheck   className="w-[18px] h-[18px]" /> },
+      ],
     },
-    { 
-      key: 'schools',
-      icon: <School className="w-5 h-5" />, 
-      label: 'Schools',
-      children: [
-        { 
-          label: 'Add School', 
-          path: '/dashboard/schools/add' 
-        },
-        { 
-          label: 'View Schools', 
-          path: '/dashboard/schools' 
-        }
-      ]
+    {
+      heading: 'People',
+      items: [
+        { key: 'students', label: 'Students', path: '/dashboard/students', icon: <GraduationCap className="w-[18px] h-[18px]" /> },
+        { key: 'teachers', label: 'Teachers', path: '/dashboard/teachers', icon: <Users         className="w-[18px] h-[18px]" /> },
+        { key: 'parents',  label: 'Parents',  path: '/dashboard/parents',  icon: <Heart         className="w-[18px] h-[18px]" /> },
+        { key: 'admins',   label: 'Admins',   path: '/dashboard/admins',   icon: <Shield        className="w-[18px] h-[18px]" /> },
+        { key: 'users',    label: 'Users',    path: '/dashboard/users',    icon: <UserCog       className="w-[18px] h-[18px]" /> },
+      ],
     },
-    { 
-      key: 'students',
-      icon: <GraduationCap className="w-5 h-5" />, 
-      label: 'Students',
-      children: [
-        { 
-          label: 'Add Student', 
-          path: '/dashboard/students/add' 
-        },
-        { 
-          label: 'View Students', 
-          path: '/dashboard/students' 
-        }
-      ]
+    {
+      heading: 'Academic',
+      items: [
+        { key: 'classes',         label: 'Classes',         path: '/dashboard/classes',              icon: <BookOpen     className="w-[18px] h-[18px]" /> },
+        { key: 'subjects',        label: 'Subjects',        path: '/dashboard/subjects',             icon: <BookOpenText className="w-[18px] h-[18px]" /> },
+        { key: 'academic_years',  label: 'Academic years',  path: '/dashboard/academic-years',       icon: <CalendarRange className="w-[18px] h-[18px]" /> },
+        { key: 'attendance',      label: 'Attendance',      path: '/dashboard/attendance',           icon: <ClipboardCheck className="w-[18px] h-[18px]" /> },
+        { key: 'class_teachers',  label: 'Class teachers',  path: '/dashboard/class-teachers',       icon: <Users        className="w-[18px] h-[18px]" /> },
+        { key: 'assignments',     label: 'Assignments',     path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
+        { key: 'exams',           label: 'Exams',           path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
+      ],
     },
-    { 
-      key: 'teachers',
-      icon: <UserPlus className="w-5 h-5" />, 
-      label: 'Teachers',
-      children: [
-        { 
-          label: 'Add Teacher', 
-          path: '/dashboard/teachers/add' 
-        },
-        { 
-          label: 'View Teachers', 
-          path: '/dashboard/teachers' 
-        }
-      ]
-    },
-    { 
-      key: 'classes',
-      icon: <BookOpen className="w-5 h-5" />, 
-      label: 'Class Management',
-      children: [
-        { 
-          label: 'Add Class', 
-          path: '/dashboard/classes/add' 
-        },
-        { 
-          label: 'View Classes', 
-          path: '/dashboard/classes' 
-        },
-        { 
-          label: 'Class Schedule', 
-          path: '/dashboard/classes/schedule' 
-        }
-      ]
-    },
-    { 
-      key: 'attendance',
-      icon: <CalendarCheck className="w-5 h-5" />, 
-      label: 'Attendance',
-      children: [
-        { 
-          label: 'Mark Attendance', 
-          path: '/dashboard/attendance/mark' 
-        },
-        { 
-          label: 'View Attendance', 
-          path: '/dashboard/attendance' 
-        }
-      ]
-    },
-    { 
-      key: 'users',
-      icon: <Users className="w-5 h-5" />, 
-      label: 'Users', 
-      path: '/dashboard/users'
-    },
-    { 
-      key: 'subjects',
-      icon: <BookOpenText className="w-5 h-5" />, 
-      label: 'Subject Management',
-      children: [
-        { 
-          label: 'Add Subject', 
-          path: '/dashboard/subjects/add' 
-        },
-        { 
-          label: 'View Subjects', 
-          path: '/dashboard/subjects' 
-        }
-      ]
-    },
-    { 
-      key: 'notices',
-      icon: <Bell className="w-5 h-5" />, 
-      label: 'Notices',
-      children: [
-        { 
-          label: 'View Notices', 
-          path: '/dashboard/notices' 
-        },
-        { 
-          label: 'Add Notice', 
-          path: '/dashboard/notices/add' 
-        }
-      ]
-    },
-    { 
-      key: 'exams',
-      icon: <BookOpenCheck className="w-5 h-5" />, 
-      label: 'Exam Management',
-      children: [
-        { 
-          label: 'Schedule Exam', 
-          path: '/dashboard/exams/schedule' 
-        },
-        { 
-          label: 'View Exams', 
-          path: '/dashboard/exams' 
-        },
-        { 
-          label: 'Exam Results', 
-          path: '/dashboard/exams/results' 
-        }
-      ]
-    },
-    { 
-      key: 'settings',
-      icon: <Settings className="w-5 h-5" />, 
-      label: 'Settings', 
-      path: '/dashboard/settings' 
+    {
+      heading: 'Admin',
+      items: [
+        { key: 'notices',  label: 'Notices',         path: '/dashboard/notices',  icon: <Bell      className="w-[18px] h-[18px]" /> },
+        { key: 'schools',  label: 'Schools',         path: '/dashboard/schools',  icon: <School    className="w-[18px] h-[18px]" /> },
+        { key: 'tenant',   label: 'School settings', path: '/dashboard/tenant',   icon: <Building2 className="w-[18px] h-[18px]" /> },
+        { key: 'settings', label: 'Settings',        path: '/dashboard/settings', icon: <Settings  className="w-[18px] h-[18px]" /> },
+      ],
     },
   ];
 
-  return (
-    <div 
-      className={`h-full bg-white shadow-lg`}
-      style={{
-        height: '100vh',
-        width: '100%',
-        overflowY: 'auto'
-      }}
-    >
-      <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="flex items-center h-16 px-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-800">School Connect</h1>
-        </div>
+  // Filter items in each section by visibility; drop empty sections.
+  const visibleSections = SECTIONS
+    .map((s) => ({ ...s, items: s.items.filter((i) => can[i.key]) }))
+    .filter((s) => s.items.length > 0);
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-4 overflow-y-auto">
-          <ul className="space-y-1">
-            {menuItems.map((item) => (
-              <li key={item.key || item.path}>
-                {item.children ? (
-                  <>
-                    <button
-                      onClick={() => toggleItem(item.key!)}
-                      className={`flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-lg mx-2 transition-colors ${
-                        expandedItems[item.key!] ? 'text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <span className="mr-3">{item.icon}</span>
-                        <span>{item.label}</span>
-                      </div>
-                      <svg
-                        className={`w-4 h-4 transition-transform ${
-                          expandedItems[item.key!] ? 'transform rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {expandedItems[item.key!] && (
-                      <ul className="ml-8 mt-1 space-y-1">
-                        {item.children.map((child, index) => (
-                          <li key={`${item.key}-${index}`}>
-                            <NavLink
-                              to={child.path}
-                              className={({ isActive }) =>
-                                `flex items-center px-4 py-2 text-sm rounded-lg mx-2 transition-colors ${
-                                  isActive
-                                    ? 'bg-blue-50 text-blue-600 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                                }`
-                              }
-                              onClick={onClose}
-                            >
-                              <span className="truncate">{child.label}</span>
-                            </NavLink>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                ) : (
+  return (
+    <div
+      className="h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col"
+      style={{ height: '100vh', width: '100%', overflowY: 'hidden' }}
+    >
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 h-16 px-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-brand-gradient text-white flex items-center justify-center font-bold text-xs">
+          SC
+        </div>
+        <div className="text-sm font-semibold text-ink-900 dark:text-slate-100 font-display">
+          School Connect
+        </div>
+      </div>
+
+      {/* Sections */}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto">
+        {visibleSections.map((section, i) => (
+          <div key={section.heading} className={i === 0 ? '' : 'mt-5'}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-300 dark:text-slate-500 px-3 mb-1.5">
+              {section.heading}
+            </div>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => (
+                <li key={item.key}>
                   <NavLink
                     to={item.path}
                     end={item.exact}
+                    onClick={onClose}
                     className={({ isActive }) =>
-                      `flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-2 transition-colors ${
+                      `group flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${
                         isActive
-                          ? 'bg-blue-50 text-blue-600'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200 font-medium'
+                          : 'text-ink-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                       }`
                     }
-                    onClick={onClose}
                   >
-                    <span className="mr-3">{item.icon}</span>
-                    <span className="truncate">{item.label}</span>
+                    {({ isActive }) => (
+                      <>
+                        <span className={isActive ? 'text-brand-600 dark:text-brand-300' : 'text-ink-400 dark:text-slate-500'}>
+                          {item.icon}
+                        </span>
+                        <span>{item.label}</span>
+                      </>
+                    )}
                   </NavLink>
-                )}
-              </li>
-            ))}
-          </ul>
-        </nav>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-gray-200 mt-auto">
-          <button
-            onClick={onLogout}
-            className="flex items-center w-full px-4 py-2.5 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <LogOut className="w-5 h-5 mr-3" />
-            <span>Logout</span>
-          </button>
-        </div>
+      {/* Logout */}
+      <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+        >
+          <LogOut className="w-[18px] h-[18px]" />
+          <span>Sign out</span>
+        </button>
       </div>
     </div>
   );

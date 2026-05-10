@@ -1,0 +1,51 @@
+/** Parent + ParentPortal services */
+
+import apiService from '../service/apiService';
+import { PARENT_ENDPOINTS, PARENT_PORTAL_ENDPOINTS } from '../config/api.config';
+import type {
+  ParentChildSummary,
+  ParentProfile,
+  ParentRequest,
+  ParentResponse,
+} from '../types/parent';
+import type { StudentResponse } from '../types/student';
+
+export const parentService = {
+  /** Backend `/parents` returns a flat List<ParentResponse> — not paginated. */
+  list(): Promise<ParentResponse[]> {
+    return apiService.getList(PARENT_ENDPOINTS.ROOT);
+  },
+  getById(id: string): Promise<ParentResponse> {
+    return apiService.get(PARENT_ENDPOINTS.byId(id));
+  },
+  create(payload: ParentRequest): Promise<ParentResponse> {
+    return apiService.post(PARENT_ENDPOINTS.ROOT, payload);
+  },
+  update(id: string, payload: ParentRequest): Promise<ParentResponse> {
+    return apiService.put(PARENT_ENDPOINTS.byId(id), payload);
+  },
+  remove(id: string): Promise<void> {
+    return apiService.delete(PARENT_ENDPOINTS.byId(id));
+  },
+};
+
+export const parentPortalService = {
+  /** GET /parent-portal/students — own children */
+  myChildren(): Promise<ParentChildSummary[]> {
+    return apiService.getList(PARENT_PORTAL_ENDPOINTS.STUDENTS);
+  },
+  /** GET /parent-portal/students/{studentId} */
+  childDetail(studentId: string): Promise<StudentResponse> {
+    return apiService.get(PARENT_PORTAL_ENDPOINTS.studentById(studentId));
+  },
+  /** GET /parent-portal/students/{studentId}/access-check */
+  accessCheck(studentId: string): Promise<{ allowed: boolean }> {
+    return apiService.get(PARENT_PORTAL_ENDPOINTS.accessCheck(studentId));
+  },
+  /** GET /parent-portal/profile */
+  myProfile(): Promise<ParentProfile> {
+    return apiService.get(PARENT_PORTAL_ENDPOINTS.PROFILE);
+  },
+};
+
+export default parentService;

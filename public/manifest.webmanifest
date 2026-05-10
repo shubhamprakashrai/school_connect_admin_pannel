@@ -1,0 +1,45 @@
+{
+  "name": "School Connect",
+  "short_name": "School Connect",
+  "description": "All-in-one school management system for admins, teachers and parents.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["education", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mark attendance",
+      "short_name": "Attendance",
+      "url": "/dashboard/attendance/mark",
+      "description": "Quick mark today's attendance"
+    },
+    {
+      "name": "Add student",
+      "short_name": "New student",
+      "url": "/dashboard/students/add"
+    }
+  ]
+}

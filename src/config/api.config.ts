@@ -1,98 +1,301 @@
-// Base API URL
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+/**
+ * Centralized API configuration.
+ *
+ * Best practice: change BASE_URL in .env.* files only — every service in the
+ * app imports from here, so a single env edit propagates everywhere.
+ *
+ * Endpoints are exposed as relative paths (no host) — the axios client
+ * (`apiService`) is configured with BASE_URL, so paths combine naturally.
+ * Functions are used wherever a path parameter is needed.
+ */
 
-// API Version
-const API_VERSION = 'v1';
+// ---------------------------------------------------------------------------
+// Runtime env (Vite injects these from .env.* files at build time)
+// ---------------------------------------------------------------------------
 
-// Authentication Endpoints
+const env = import.meta.env;
+
+export const BASE_URL: string = env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+export const DEFAULT_TENANT_ID: string = env.VITE_DEFAULT_TENANT_ID || 'default';
+export const API_TIMEOUT: number = Number(env.VITE_API_TIMEOUT) || 15000;
+export const API_DEBUG: boolean = String(env.VITE_API_DEBUG) === 'true';
+
+// ---------------------------------------------------------------------------
+// Storage keys (single source — auth/tenant code reads from here)
+// ---------------------------------------------------------------------------
+
+export const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'sc_access_token',
+  REFRESH_TOKEN: 'sc_refresh_token',
+  USER: 'sc_user',
+  TENANT_ID: 'sc_tenant_id',
+  IS_AUTHENTICATED: 'sc_is_authenticated',
+} as const;
+
+// ---------------------------------------------------------------------------
+// Endpoint catalogue — every backend controller represented here.
+// ---------------------------------------------------------------------------
+
+/** /auth/* — AuthenticationController */
 export const AUTH_ENDPOINTS = {
-  LOGIN: `${BASE_URL}/api/auth/login`,
-  REGISTER: `${BASE_URL}/api/auth/register`,
-  REFRESH_TOKEN: `${BASE_URL}/api/auth/refresh`,
-  LOGOUT: `${BASE_URL}/api/auth/logout`,
-  FORGOT_PASSWORD: `${BASE_URL}/api/auth/forgot-password`,
-  RESET_PASSWORD: `${BASE_URL}/api/auth/reset-password`,
-  VERIFY_EMAIL: `${BASE_URL}/api/auth/verify-email`,
-  RESEND_VERIFICATION: `${BASE_URL}/api/auth/resend-verification`,
-  CHANGE_PASSWORD: `${BASE_URL}/api/auth/change-password`,
-  VALIDATE_TOKEN: `${BASE_URL}/api/auth/validate-token`,
-};
+  LOGIN: '/auth/login',
+  REGISTER: '/auth/register',
+  REFRESH: '/auth/refresh',
+  LOGOUT: '/auth/logout',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  RESET_PASSWORD: '/auth/reset-password',
+  INITIAL_RESET_PASSWORD: '/auth/Initialreset-password',
+  VERIFY_EMAIL: '/auth/verify-email',
+  RESEND_VERIFICATION: '/auth/resend-verification',
+  CHANGE_PASSWORD: '/auth/change-password',
+  ADMIN_RESET_PASSWORD: '/auth/admin-reset-password',
+  VALIDATE_TOKEN: '/auth/validate-token',
+} as const;
 
+/** /admins/* — AdminController */
+export const ADMIN_ENDPOINTS = {
+  ROOT: '/admins',
+  byId: (adminId: string | number) => `/admins/${adminId}`,
+} as const;
 
-
-// User Management Endpoints
+/** /users/* — UserController */
 export const USER_ENDPOINTS = {
-  PROFILE: `${BASE_URL}/api/${API_VERSION}/users/profile`,
-  USERS: `${BASE_URL}/api/${API_VERSION}/users`,
-  ROLES: `${BASE_URL}/api/${API_VERSION}/users/roles`,
-  PERMISSIONS: `${BASE_URL}/api/${API_VERSION}/users/permissions`,
-};
+  ROOT: '/users',
+  byId: (userId: string | number) => `/users/${userId}`,
+  byRole: (role: string) => `/users/role/${role}`,
+  status: (userId: string | number) => `/users/${userId}/status`,
+  roles: (userId: string | number) => `/users/${userId}/roles`,
+  removeRole: (userId: string | number, role: string) => `/users/${userId}/roles/${role}`,
+  unlock: (userId: string | number) => `/users/${userId}/unlock`,
+  verifyEmail: (userId: string | number) => `/users/${userId}/verify-email`,
+  STATISTICS: '/users/statistics',
+} as const;
 
-// School Management Endpoints
-export const SCHOOL_ENDPOINTS = {
-  SCHOOLS: `${BASE_URL}/api/${API_VERSION}/schools`,
-  CLASSES: `${BASE_URL}/api/${API_VERSION}/schools/classes`,
-  SECTIONS: `${BASE_URL}/api/${API_VERSION}/schools/sections`,
-  SUBJECTS: `${BASE_URL}/api/${API_VERSION}/schools/subjects`,
-};
+/** /tenants/* — TenantController (self-service) */
+export const TENANT_ENDPOINTS = {
+  REGISTER: '/tenants/register',
+  CURRENT: '/tenants/current',
+  byId: (tenantId: string) => `/tenants/${tenantId}`,
+  activate: (tenantId: string) => `/tenants/${tenantId}/activate`,
+  suspend: (tenantId: string) => `/tenants/${tenantId}/suspend`,
+  STATISTICS: '/tenants/statistics',
+  CAN_ADD_STUDENT: '/tenants/can-add-student',
+  CAN_ADD_TEACHER: '/tenants/can-add-teacher',
+  UPDATE_STUDENT_COUNT: '/tenants/update-student-count',
+  UPDATE_TEACHER_COUNT: '/tenants/update-teacher-count',
+  UPDATE_STORAGE: '/tenants/update-storage',
+} as const;
 
-// Student Management Endpoints
+/** /superadmin/tenants/* — SuperAdminTenantController */
+export const SUPERADMIN_TENANT_ENDPOINTS = {
+  ROOT: '/superadmin/tenants',
+  byId: (tenantId: string) => `/superadmin/tenants/${tenantId}`,
+  activate: (tenantId: string) => `/superadmin/tenants/${tenantId}/activate`,
+  suspend: (tenantId: string) => `/superadmin/tenants/${tenantId}/suspend`,
+  permanentDelete: (tenantId: string) => `/superadmin/tenants/${tenantId}/permanent`,
+  restore: (tenantId: string) => `/superadmin/tenants/${tenantId}/restore`,
+  subscription: (tenantId: string) => `/superadmin/tenants/${tenantId}/subscription`,
+  limits: (tenantId: string) => `/superadmin/tenants/${tenantId}/limits`,
+  GLOBAL_STATISTICS: '/superadmin/tenants/statistics/global',
+  byStatus: (status: string) => `/superadmin/tenants/status/${status}`,
+  SEARCH: '/superadmin/tenants/search',
+  analytics: (tenantId: string) => `/superadmin/tenants/${tenantId}/analytics`,
+  BULK_ACTIVATE: '/superadmin/tenants/bulk/activate',
+  BULK_SUSPEND: '/superadmin/tenants/bulk/suspend',
+  configuration: (tenantId: string) => `/superadmin/tenants/${tenantId}/configuration`,
+} as const;
+
+/** /academic-years/* — AcademicYearController */
+export const ACADEMIC_YEAR_ENDPOINTS = {
+  ROOT: '/academic-years',
+  byId: (id: string | number) => `/academic-years/${id}`,
+  ACTIVE: '/academic-years/active',
+  activate: (id: string | number) => `/academic-years/${id}/activate`,
+} as const;
+
+/** /classes/* — SchoolClassController (class CRUD) */
+export const CLASS_ENDPOINTS = {
+  ROOT: '/classes',
+  CREATE: '/classes/create',
+  byId: (id: string | number) => `/classes/${id}`,
+} as const;
+
+/** /class/* — ClassController (teacher/section ops) */
+export const CLASS_TEACHER_LINK_ENDPOINTS = {
+  ASSIGN_TEACHER: '/class/assign-teacher',
+  removeTeacher: (sectionId: string | number) => `/class/remove-teacher/${sectionId}`,
+  studentsBySection: (sectionId: string | number) => `/class/section/${sectionId}/students`,
+  sectionsByTeacher: (teacherId: string | number) => `/class/teacher/${teacherId}/sections`,
+  verifyAssignment: (teacherId: string | number, sectionId: string | number) =>
+    `/class/teacher/${teacherId}/section/${sectionId}/verify`,
+} as const;
+
+/** /sections/* — SectionController */
+export const SECTION_ENDPOINTS = {
+  ROOT: '/sections',
+  byClass: (classId: string | number) => `/sections/class/${classId}`,
+  byId: (sectionId: string | number) => `/sections/${sectionId}`,
+  byName: (sectionName: string) => `/sections/sections/by-name/${sectionName}`,
+} as const;
+
+/** /subjects/* — SubjectController */
+export const SUBJECT_ENDPOINTS = {
+  ROOT: '/subjects',
+  BULK: '/subjects/bulk',
+  PAGINATED: '/subjects/paginated',
+  byId: (id: string | number) => `/subjects/${id}`,
+  byCode: (code: string) => `/subjects/code/${code}`,
+  byClass: (classId: string | number) => `/subjects/class/${classId}`,
+  byTeacher: (teacherId: string | number) => `/subjects/teacher/${teacherId}`,
+  SEARCH: '/subjects/search',
+  assignToClass: (subjectId: string | number, classId: string | number) =>
+    `/subjects/${subjectId}/assign-to-class/${classId}`,
+  assignToTeacher: (subjectId: string | number, teacherId: string | number) =>
+    `/subjects/${subjectId}/assign-to-teacher/${teacherId}`,
+  removeFromClass: (subjectId: string | number, classId: string | number) =>
+    `/subjects/${subjectId}/remove-from-class/${classId}`,
+  removeFromTeacher: (subjectId: string | number, teacherId: string | number) =>
+    `/subjects/${subjectId}/remove-from-teacher/${teacherId}`,
+} as const;
+
+/** /students/* — StudentController */
 export const STUDENT_ENDPOINTS = {
-  STUDENTS: `${BASE_URL}/api/${API_VERSION}/students`,
-  ATTENDANCE: `${BASE_URL}/api/${API_VERSION}/students/attendance`,
-  GRADES: `${BASE_URL}/api/${API_VERSION}/students/grades`,
-};
+  ROOT: '/students',
+  byId: (studentId: string | number) => `/students/${studentId}`,
+  status: (studentId: string | number) => `/students/${studentId}/status`,
+  STATISTICS: '/students/statistics',
+  byClass: (classId: string | number) => `/students/class/${classId}`,
+  bySection: (sectionId: string | number) => `/students/section/${sectionId}`,
+  SEARCH: '/students/search',
+} as const;
 
-// Teacher Management Endpoints
+/** /students/bulk/* — BulkStudentController */
+export const BULK_STUDENT_ENDPOINTS = {
+  ROOT: '/students/bulk',
+  TEMPLATE: '/students/bulk/template',
+  VALIDATE: '/students/bulk/validate',
+} as const;
+
+/** /teachers/* — TeacherController */
 export const TEACHER_ENDPOINTS = {
-  TEACHERS: `${BASE_URL}/api/${API_VERSION}/teachers`,
-  TIMETABLE: `${BASE_URL}/api/${API_VERSION}/teachers/timetable`,
-  ATTENDANCE: `${BASE_URL}/api/${API_VERSION}/teachers/attendance`,
-};
+  ROOT: '/teachers',
+  byId: (teacherId: string | number) => `/teachers/${teacherId}`,
+} as const;
 
-// Parent Management Endpoints
+/** /teachers/bulk-attendance/* — BulkTeacherAttendanceController */
+export const TEACHER_BULK_ATTENDANCE_ENDPOINTS = {
+  ROOT: '/teachers/bulk-attendance',
+  TEMPLATE: '/teachers/bulk-attendance/template',
+  VALIDATE: '/teachers/bulk-attendance/validate',
+  byId: (id: string | number) => `/teachers/bulk-attendance/${id}`,
+} as const;
+
+/** /teacher-assignments/* — TeacherAssignmentController */
+export const TEACHER_ASSIGNMENT_ENDPOINTS = {
+  ROOT: '/teacher-assignments',
+  byId: (assignmentId: string | number) => `/teacher-assignments/${assignmentId}`,
+  byTeacher: (teacherId: string | number) => `/teacher-assignments/teacher/${teacherId}`,
+  bySection: (sectionId: string | number) => `/teacher-assignments/section/${sectionId}`,
+  BATCH: '/teacher-assignments/batch',
+  teacherSubjectsInfo: (teacherId: string | number) =>
+    `/teacher-assignments/teacher/${teacherId}/subjects-info`,
+} as const;
+
+/** /class-teachers/* — ClassTeacherController */
+export const CLASS_TEACHER_ENDPOINTS = {
+  ROOT: '/class-teachers',
+  ASSIGN: '/class-teachers/assign',
+  bySection: (sectionId: string | number) => `/class-teachers/section/${sectionId}`,
+  byTeacher: (teacherId: string | number) => `/class-teachers/teacher/${teacherId}`,
+  TRANSFER: '/class-teachers/transfer',
+} as const;
+
+/** /parents/* — ParentController */
 export const PARENT_ENDPOINTS = {
-  PARENTS: `${BASE_URL}/api/${API_VERSION}/parents`,
-  CHILDREN: `${BASE_URL}/api/${API_VERSION}/parents/children`,
-};
+  ROOT: '/parents',
+  byId: (id: string | number) => `/parents/${id}`,
+} as const;
 
-// Notice Board Endpoints
-export const NOTICE_ENDPOINTS = {
-  NOTICES: `${BASE_URL}/api/${API_VERSION}/notices`,
-  EVENTS: `${BASE_URL}/api/${API_VERSION}/events`,
-};
+/** /parent-portal/* — ParentPortalController */
+export const PARENT_PORTAL_ENDPOINTS = {
+  STUDENTS: '/parent-portal/students',
+  studentById: (studentId: string | number) => `/parent-portal/students/${studentId}`,
+  accessCheck: (studentId: string | number) =>
+    `/parent-portal/students/${studentId}/access-check`,
+  PROFILE: '/parent-portal/profile',
+} as const;
 
-// Settings Endpoints
-export const SETTINGS_ENDPOINTS = {
-  GENERAL: `${BASE_URL}/api/${API_VERSION}/settings/general`,
-  SCHOOL: `${BASE_URL}/api/${API_VERSION}/settings/school`,
-  EMAIL: `${BASE_URL}/api/${API_VERSION}/settings/email`,
-};
+/** /attendance/* — AttendanceController (generic mark) */
+export const ATTENDANCE_ENDPOINTS = {
+  ROOT: '/attendance',
+} as const;
 
-// File Upload Endpoint
-export const FILE_UPLOAD = `${BASE_URL}/api/${API_VERSION}/upload`;
+/** /student/attendance/* — StudentAttendanceController */
+export const STUDENT_ATTENDANCE_ENDPOINTS = {
+  ROOT: '/student/attendance',
+  BULK: '/student/attendance/bulk',
+  byId: (id: string | number) => `/student/attendance/${id}`,
+  byStudentAndDate: (studentId: string | number, date: string) =>
+    `/student/attendance/student/${studentId}/date/${date}`,
+  bySectionAndDate: (sectionId: string | number, date: string) =>
+    `/student/attendance/section/${sectionId}/date/${date}`,
+  studentSummary: (studentId: string | number) =>
+    `/student/attendance/student/${studentId}/summary`,
+} as const;
 
-// Export all endpoints as a single object for convenience
+/** /calendar-events/* — CalendarEventController */
+export const CALENDAR_EVENT_ENDPOINTS = {
+  ROOT: '/calendar-events',
+  byId: (id: string | number) => `/calendar-events/${id}`,
+  BY_DATE: '/calendar-events/by-date',
+  BY_RANGE: '/calendar-events/by-range',
+  byAcademicYear: (academicYearId: string | number) =>
+    `/calendar-events/by-academic-year/${academicYearId}`,
+  IS_WORKING_DAY: '/calendar-events/is-working-day',
+} as const;
+
+/** /config/* — MobileConfigController */
+export const MOBILE_CONFIG_ENDPOINTS = {
+  MOBILE: '/config/mobile',
+  UPDATE: '/config/update',
+  ROOT: '/config',
+} as const;
+
+// ---------------------------------------------------------------------------
+// Convenience export — single object containing every group.
+// Use this when iterating, debugging, or wiring a generic API explorer.
+// ---------------------------------------------------------------------------
+
 export const API_ENDPOINTS = {
-  ...AUTH_ENDPOINTS,
-  ...USER_ENDPOINTS,
-  ...SCHOOL_ENDPOINTS,
-  ...STUDENT_ENDPOINTS,
-  ...TEACHER_ENDPOINTS,
-  ...PARENT_ENDPOINTS,
-  ...NOTICE_ENDPOINTS,
-  ...SETTINGS_ENDPOINTS,
-  FILE_UPLOAD,
-};
+  AUTH: AUTH_ENDPOINTS,
+  ADMIN: ADMIN_ENDPOINTS,
+  USER: USER_ENDPOINTS,
+  TENANT: TENANT_ENDPOINTS,
+  SUPERADMIN_TENANT: SUPERADMIN_TENANT_ENDPOINTS,
+  ACADEMIC_YEAR: ACADEMIC_YEAR_ENDPOINTS,
+  CLASS: CLASS_ENDPOINTS,
+  CLASS_TEACHER_LINK: CLASS_TEACHER_LINK_ENDPOINTS,
+  SECTION: SECTION_ENDPOINTS,
+  SUBJECT: SUBJECT_ENDPOINTS,
+  STUDENT: STUDENT_ENDPOINTS,
+  BULK_STUDENT: BULK_STUDENT_ENDPOINTS,
+  TEACHER: TEACHER_ENDPOINTS,
+  TEACHER_BULK_ATTENDANCE: TEACHER_BULK_ATTENDANCE_ENDPOINTS,
+  TEACHER_ASSIGNMENT: TEACHER_ASSIGNMENT_ENDPOINTS,
+  CLASS_TEACHER: CLASS_TEACHER_ENDPOINTS,
+  PARENT: PARENT_ENDPOINTS,
+  PARENT_PORTAL: PARENT_PORTAL_ENDPOINTS,
+  ATTENDANCE: ATTENDANCE_ENDPOINTS,
+  STUDENT_ATTENDANCE: STUDENT_ATTENDANCE_ENDPOINTS,
+  CALENDAR_EVENT: CALENDAR_EVENT_ENDPOINTS,
+  MOBILE_CONFIG: MOBILE_CONFIG_ENDPOINTS,
+} as const;
 
 export default {
   BASE_URL,
-  API_VERSION,
+  DEFAULT_TENANT_ID,
+  API_TIMEOUT,
+  API_DEBUG,
+  STORAGE_KEYS,
   ...API_ENDPOINTS,
 };
-
-
-
-
-// Username: admin_user
-// Password: Admin@123
