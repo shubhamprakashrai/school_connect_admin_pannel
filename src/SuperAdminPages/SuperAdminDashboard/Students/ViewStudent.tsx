@@ -131,11 +131,15 @@ export default function ViewStudent() {
         <Grid item xs={12} md={6}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>Family</Typography>
-            <FieldRow label="Father" value={student.fatherInfo?.name} sub={student.fatherInfo?.phone} />
+            <FieldRow label="Father" value={student.fatherInfo?.name} sub={student.fatherInfo?.occupation} />
             <Divider sx={{ my: 1 }} />
-            <FieldRow label="Mother" value={student.motherInfo?.name} sub={student.motherInfo?.phone} />
+            <FieldRow label="Mother" value={student.motherInfo?.name} sub={student.motherInfo?.occupation} />
             <Divider sx={{ my: 1 }} />
-            <FieldRow label="Guardian" value={student.guardianInfo?.name} sub={student.guardianInfo?.phone} />
+            <FieldRow
+              label="Guardian (portal login)"
+              value={student.guardianInfo?.name}
+              sub={[student.guardianInfo?.phone, student.guardianInfo?.email].filter(Boolean).join(' · ')}
+            />
             <Divider sx={{ my: 1 }} />
             <Typography variant="caption" color="text.secondary">EMERGENCY CONTACT</Typography>
             <Typography variant="body1">

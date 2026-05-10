@@ -31,6 +31,18 @@ const STEPS = [
   { label: 'Family & emergency',hint: 'Optional parents · required emergency contact' },
 ] as const;
 
+/**
+ * Backend (May 2026) restructured `parentInfo` into a single mandatory
+ * wrapper. Inside the wrapper, each role is individually optional, but if
+ * a role is provided its fields are nested-validated:
+ *
+ *   fatherInfo:   { name + occupation }              — both @NotBlank
+ *   motherInfo:   { name + occupation }              — both @NotBlank
+ *   guardianInfo: { name + occupation + email + phone } — all four @NotBlank
+ *
+ * GuardianInfo also drives parent-portal login (email + phone validate it),
+ * which is why those fields live there and not on father/mother.
+ */
 const empty: CreateStudentRequest = {
   rollNumber: '',
   userRequest: { firstName: '', middleName: '', lastName: '', email: '', phone: '' },
@@ -45,8 +57,11 @@ const empty: CreateStudentRequest = {
   section: { id: '' },
   admissionDate: new Date().toISOString().slice(0, 10),
   previousSchool: '',
-  fatherInfo: { name: '', phone: '', email: '', occupation: '' },
-  motherInfo: { name: '', phone: '', email: '', occupation: '' },
+  parentInfo: {
+    fatherInfo:   { name: '', occupation: '' },
+    motherInfo:   { name: '', occupation: '' },
+    guardianInfo: { name: '', occupation: '', email: '', phone: '' },
+  },
   emergencyContact: { name: '', relation: '', phone: '' },
   createUserAccount: false,
 };
@@ -81,16 +96,35 @@ function validate(step: number, f: CreateStudentRequest): FormErrors {
     if (!f.admissionDate)  e.admissionDate = 'Required';
   }
   if (step === 2) {
-    // Parents are optional — but if a name is filled, phone (if filled) must be valid.
-    const checkParent = (label: string, info?: typeof f.fatherInfo) => {
-      if (!info?.name?.trim()) return;
-      if (info.phone && !PHONE_RX.test(info.phone)) {
-        e[`${label}Phone`] = `${label} phone must be 10 digits`;
-      }
+    // Father/mother: skip silently if name is blank; otherwise both name + occupation are required.
+    const checkSimple = (
+      role: 'father' | 'mother',
+      info: { name?: string; occupation?: string } | undefined,
+    ) => {
+      const name = info?.name?.trim();
+      const occ  = info?.occupation?.trim();
+      if (!name && !occ) return; // section skipped
+      if (!name) e[`${role}Name`] = 'Name required';
+      if (!occ)  e[`${role}Occupation`] = 'Occupation required';
     };
-    checkParent('father',   f.fatherInfo);
-    checkParent('mother',   f.motherInfo);
-    checkParent('guardian', f.guardianInfo);
+    checkSimple('father', f.parentInfo.fatherInfo);
+    checkSimple('mother', f.parentInfo.motherInfo);
+
+    // Guardian: optional, but ALL four fields required together (portal access).
+    const g = f.parentInfo.guardianInfo;
+    const gName = g?.name?.trim();
+    const gOcc  = g?.occupation?.trim();
+    const gMail = g?.email?.trim();
+    const gPh   = g?.phone?.trim();
+    const gAny  = gName || gOcc || gMail || gPh;
+    if (gAny) {
+      if (!gName) e.guardianName = 'Name required';
+      if (!gOcc)  e.guardianOccupation = 'Occupation required';
+      if (!gMail) e.guardianEmail = 'Email required for portal access';
+      else if (!EMAIL_RX.test(gMail)) e.guardianEmail = 'Invalid email';
+      if (!gPh)   e.guardianPhone = 'Phone required for portal access';
+      else if (!PHONE_RX.test(gPh)) e.guardianPhone = 'Must be exactly 10 digits';
+    }
 
     // Emergency contact required.
     if (!f.emergencyContact.name.trim())     e.emName = 'Required';
@@ -128,23 +162,35 @@ export default function AddStudentForm() {
   const setField = <K extends keyof CreateStudentRequest>(k: K, v: CreateStudentRequest[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const setParent = (which: 'fatherInfo' | 'motherInfo' | 'guardianInfo', k: string, v: string) =>
-    setForm((p) => ({ ...p, [which]: { ...(p[which] || {}), [k]: v } } as CreateStudentRequest));
+  const setParent = (
+    which: 'fatherInfo' | 'motherInfo' | 'guardianInfo',
+    k: string,
+    v: string,
+  ) =>
+    setForm((p) => ({
+      ...p,
+      parentInfo: {
+        ...p.parentInfo,
+        [which]: { ...(p.parentInfo[which] ?? {}), [k]: v },
+      },
+    } as CreateStudentRequest));
 
   const fillParentFromExisting = (
     which: 'fatherInfo' | 'motherInfo' | 'guardianInfo',
     src: ParentResponse | null,
   ) => {
     if (!src) return;
-    setForm((p) => ({
-      ...p,
-      [which]: {
-        name: [src.firstname, src.middlename, src.lastname].filter(Boolean).join(' ').trim(),
-        phone: src.phone || '',
-        email: src.email || '',
-        occupation: '',
-      },
-    } as CreateStudentRequest));
+    const fullName = [src.firstname, src.middlename, src.lastname].filter(Boolean).join(' ').trim();
+    setForm((p) => {
+      // father/mother only need name + occupation; guardian needs all four
+      const next = which === 'guardianInfo'
+        ? { name: fullName, occupation: '', email: src.email || '', phone: src.phone || '' }
+        : { name: fullName, occupation: '' };
+      return {
+        ...p,
+        parentInfo: { ...p.parentInfo, [which]: next },
+      } as CreateStudentRequest;
+    });
   };
 
   const isLast = step === STEPS.length - 1;
@@ -165,8 +211,15 @@ export default function AddStudentForm() {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const cleanParent = (p?: typeof form.fatherInfo) =>
-        p && p.name && p.name.trim() ? p : undefined;
+      // Drop a parent role entirely if its name is blank — backend's nested
+      // @NotBlank validators reject half-filled records, and the wrapper
+      // itself remains @NotNull so we always send `parentInfo: { … }`.
+      const cleanFather = form.parentInfo.fatherInfo?.name?.trim()
+        ? form.parentInfo.fatherInfo : undefined;
+      const cleanMother = form.parentInfo.motherInfo?.name?.trim()
+        ? form.parentInfo.motherInfo : undefined;
+      const cleanGuardian = form.parentInfo.guardianInfo?.name?.trim()
+        ? form.parentInfo.guardianInfo : undefined;
 
       const payload: CreateStudentRequest = {
         ...form,
@@ -177,9 +230,11 @@ export default function AddStudentForm() {
         country:       form.country?.trim()       || undefined,
         postalCode:    form.postalCode?.trim()    || undefined,
         previousSchool: form.previousSchool?.trim() || undefined,
-        fatherInfo:   cleanParent(form.fatherInfo),
-        motherInfo:   cleanParent(form.motherInfo),
-        guardianInfo: cleanParent(form.guardianInfo),
+        parentInfo: {
+          fatherInfo:   cleanFather,
+          motherInfo:   cleanMother,
+          guardianInfo: cleanGuardian,
+        },
         userRequest: {
           ...form.userRequest,
           middleName: form.userRequest.middleName?.trim() || undefined,
@@ -355,12 +410,14 @@ export default function AddStudentForm() {
         {step === 2 && (
           <>
             <Alert severity="info" sx={{ mb: 3 }}>
-              Father, mother, and guardian are <strong>optional</strong>. Emergency contact is <strong>required</strong>.
-              Phone numbers must be 10 digits if filled.
+              Father and Mother are <strong>optional</strong> (each needs name + occupation if filled).
+              Guardian is also optional but unlocks <strong>parent-portal login</strong> — fill all four fields if you want
+              the family to log in. Emergency contact is <strong>required</strong>.
             </Alert>
 
+            {/* Father */}
             <SectionHead title="Father (optional)"
-              subtitle="Skip if not applicable. If you fill the name, phone (if added) must be 10 digits." />
+              subtitle="Skip if not applicable. Both name and occupation are required if you fill this section." />
             {parents.length > 0 && (
               <Box sx={{ mb: 2 }}>
                 <ParentPicker
@@ -371,20 +428,24 @@ export default function AddStudentForm() {
               </Box>
             )}
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Name"
-                value={form.fatherInfo?.name || ''}
-                onChange={(e) => setParent('fatherInfo', 'name', e.target.value)} /></Grid>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Phone"
-                value={form.fatherInfo?.phone || ''}
-                onChange={(e) => setParent('fatherInfo', 'phone', e.target.value.replace(/\D/g, ''))}
-                error={!!errors.fatherPhone} helperText={errors.fatherPhone || '10 digits'}
-                inputProps={{ maxLength: 10 }} /></Grid>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Occupation"
-                value={form.fatherInfo?.occupation || ''}
-                onChange={(e) => setParent('fatherInfo', 'occupation', e.target.value)} /></Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Name"
+                  value={form.parentInfo.fatherInfo?.name || ''}
+                  onChange={(e) => setParent('fatherInfo', 'name', e.target.value)}
+                  error={!!errors.fatherName} helperText={errors.fatherName} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Occupation"
+                  value={form.parentInfo.fatherInfo?.occupation || ''}
+                  onChange={(e) => setParent('fatherInfo', 'occupation', e.target.value)}
+                  error={!!errors.fatherOccupation} helperText={errors.fatherOccupation} />
+              </Grid>
             </Grid>
 
-            <SectionHead title="Mother (optional)" sx={{ mt: 3 }} />
+            {/* Mother */}
+            <SectionHead title="Mother (optional)"
+              subtitle="Skip if not applicable. Both fields are required if filled."
+              sx={{ mt: 3 }} />
             {parents.length > 0 && (
               <Box sx={{ mb: 2 }}>
                 <ParentPicker
@@ -395,17 +456,61 @@ export default function AddStudentForm() {
               </Box>
             )}
             <Grid container spacing={2}>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Name"
-                value={form.motherInfo?.name || ''}
-                onChange={(e) => setParent('motherInfo', 'name', e.target.value)} /></Grid>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Phone"
-                value={form.motherInfo?.phone || ''}
-                onChange={(e) => setParent('motherInfo', 'phone', e.target.value.replace(/\D/g, ''))}
-                error={!!errors.motherPhone} helperText={errors.motherPhone || '10 digits'}
-                inputProps={{ maxLength: 10 }} /></Grid>
-              <Grid item xs={12} md={4}><TextField fullWidth label="Occupation"
-                value={form.motherInfo?.occupation || ''}
-                onChange={(e) => setParent('motherInfo', 'occupation', e.target.value)} /></Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Name"
+                  value={form.parentInfo.motherInfo?.name || ''}
+                  onChange={(e) => setParent('motherInfo', 'name', e.target.value)}
+                  error={!!errors.motherName} helperText={errors.motherName} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Occupation"
+                  value={form.parentInfo.motherInfo?.occupation || ''}
+                  onChange={(e) => setParent('motherInfo', 'occupation', e.target.value)}
+                  error={!!errors.motherOccupation} helperText={errors.motherOccupation} />
+              </Grid>
+            </Grid>
+
+            {/* Guardian — portal access */}
+            <SectionHead title="Guardian (recommended — enables parent-portal login)"
+              subtitle="Fill all four fields if the family should be able to log in to the parent portal. Leave blank to skip."
+              sx={{ mt: 3 }} />
+            {parents.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <ParentPicker
+                  parents={parents.filter((p) => !p.parentType || p.parentType === 'GUARDIAN')}
+                  label="Or pick an existing guardian from your records"
+                  onPick={(p) => fillParentFromExisting('guardianInfo', p)}
+                />
+              </Box>
+            )}
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Name"
+                  value={form.parentInfo.guardianInfo?.name || ''}
+                  onChange={(e) => setParent('guardianInfo', 'name', e.target.value)}
+                  error={!!errors.guardianName} helperText={errors.guardianName} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Occupation"
+                  value={form.parentInfo.guardianInfo?.occupation || ''}
+                  onChange={(e) => setParent('guardianInfo', 'occupation', e.target.value)}
+                  error={!!errors.guardianOccupation} helperText={errors.guardianOccupation} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth type="email" label="Email"
+                  value={form.parentInfo.guardianInfo?.email || ''}
+                  onChange={(e) => setParent('guardianInfo', 'email', e.target.value.toLowerCase().trim())}
+                  error={!!errors.guardianEmail}
+                  helperText={errors.guardianEmail || 'Login username for the parent portal'} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Phone"
+                  value={form.parentInfo.guardianInfo?.phone || ''}
+                  onChange={(e) => setParent('guardianInfo', 'phone', e.target.value.replace(/\D/g, ''))}
+                  error={!!errors.guardianPhone}
+                  helperText={errors.guardianPhone || '10 digits'}
+                  inputProps={{ maxLength: 10 }} />
+              </Grid>
             </Grid>
 
             <Divider sx={{ my: 3 }} />

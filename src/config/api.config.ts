@@ -218,6 +218,11 @@ export const CLASS_TEACHER_ENDPOINTS = {
 export const PARENT_ENDPOINTS = {
   ROOT: '/parents',
   byId: (id: string | number) => `/parents/${id}`,
+  /** POST body — paginated server-side search with filters. */
+  SEARCH: '/parents/search',
+  /** GET — all students linked to a parent's *user* UUID (not parent record id). */
+  studentsByParentUser: (parentUserUuid: string) =>
+    `/parents/user/${parentUserUuid}/students`,
 } as const;
 
 /** /parent-portal/* — ParentPortalController */
@@ -264,6 +269,16 @@ export const MOBILE_CONFIG_ENDPOINTS = {
   UPDATE: '/config/update',
   ROOT: '/config',
 } as const;
+
+// Parent search & relationship endpoints (added May 2026 alongside the
+// student↔parent mapping refactor).
+//
+// `searchParents` is a POST body filter, not GET query, because the filter
+// shape is rich (search/city/minChildren/email/phone/page/size/sort).
+// `studentsByParentUser` returns a flat List<StudentResponse>.
+//
+// Both live under PARENT_ENDPOINTS to keep the parent-domain config in one
+// place; declared here as additions to avoid disturbing the original block.
 
 /** /master-data/* — MasterDataController. Tenant-scoped lookup tables (DESIGNATION, DEPARTMENT, BLOOD_GROUP, etc). */
 export const MASTER_DATA_ENDPOINTS = {

@@ -3,7 +3,9 @@
 import apiService from '../service/apiService';
 import { PARENT_ENDPOINTS, PARENT_PORTAL_ENDPOINTS } from '../config/api.config';
 import type {
+  PaginatedParentSearchResponse,
   ParentChildSummary,
+  ParentFilterRequest,
   ParentProfile,
   ParentRequest,
   ParentResponse,
@@ -26,6 +28,22 @@ export const parentService = {
   },
   remove(id: string): Promise<void> {
     return apiService.delete(PARENT_ENDPOINTS.byId(id));
+  },
+  /**
+   * POST /parents/search — server-side paginated search.
+   * Returns a paginated envelope with `content[]`, totals, and page flags.
+   */
+  search(filter: ParentFilterRequest): Promise<PaginatedParentSearchResponse> {
+    return apiService.post(PARENT_ENDPOINTS.SEARCH, filter);
+  },
+  /**
+   * GET /parents/user/{parentUserUuid}/students
+   * Lists all students linked to a parent USER (not parent record). Used by
+   * the parent portal as a fallback when the dedicated portal endpoint is
+   * unavailable, and by admins to audit a parent's enrolments.
+   */
+  studentsByParentUser(parentUserUuid: string): Promise<StudentResponse[]> {
+    return apiService.getList(PARENT_ENDPOINTS.studentsByParentUser(parentUserUuid));
   },
 };
 

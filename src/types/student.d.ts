@@ -1,10 +1,13 @@
 /** Student DTOs */
 
 import type {
+  ComprehensiveParentInfo,
   EmergencyContact,
+  FatherInfo,
   Gender,
+  GuardianInfo,
   MedicalInfo,
-  ParentInfoDto,
+  MotherInfo,
   UserRequestDto,
 } from './common';
 import type { SchoolClassResponse, SectionResponse } from './schoolClass';
@@ -30,9 +33,10 @@ export interface StudentResponse {
   admissionDate?: string;
   status?: string;
   photoUrl?: string;
-  fatherInfo?: ParentInfoDto;
-  motherInfo?: ParentInfoDto;
-  guardianInfo?: ParentInfoDto;
+  /** Backend now returns the new info DTOs flat at the root (read shape). */
+  fatherInfo?: FatherInfo;
+  motherInfo?: MotherInfo;
+  guardianInfo?: GuardianInfo;
   emergencyContact?: EmergencyContact;
 }
 
@@ -50,9 +54,11 @@ export interface CreateStudentRequest {
   section: { id: string };
   admissionDate: string;
   previousSchool?: string;
-  fatherInfo?: ParentInfoDto;
-  motherInfo?: ParentInfoDto;
-  guardianInfo?: ParentInfoDto;
+  /**
+   * Wrapper is `@NotNull` on the backend — must always be sent. Send
+   * `{}` (or partial) when no parent details are known.
+   */
+  parentInfo: ComprehensiveParentInfo;
   emergencyContact: EmergencyContact;
   medicalInfo?: MedicalInfo;
   createUserAccount?: boolean;

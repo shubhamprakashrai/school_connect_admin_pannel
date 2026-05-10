@@ -30,6 +30,43 @@ export interface ParentRequest {
   parentType?: 'FATHER' | 'MOTHER' | 'GUARDIAN';
 }
 
+/** POST /parents/search body — every field is optional. */
+export interface ParentFilterRequest {
+  search?: string;
+  city?: string;
+  minChildrenCount?: number;
+  email?: string;
+  phone?: string;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDirection?: 'ASC' | 'DESC';
+}
+
+/** Slim shape returned by /parents/search — minimal fields for table display. */
+export interface ParentSearchResult {
+  parentId: string;
+  parentUserId?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface PaginatedParentSearchResponse {
+  content: ParentSearchResult[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  isFirst: boolean;
+  isLast: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 // Parent portal-specific
 export interface ParentChildSummary {
   studentId: string;
