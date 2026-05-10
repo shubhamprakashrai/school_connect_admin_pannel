@@ -13,9 +13,10 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
   Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
-  Building2, ClipboardCheck, Network, BookOpenText,
+  Building2, ClipboardCheck, Network, BookOpenText, Database,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useT } from '../../contexts/I18nContext';
 
 interface DrawerProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ interface NavSection {
 
 const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
   const { hasRole } = useAuth();
+  const { t } = useT();
   const isSuper   = hasRole('SUPERADMIN', 'SUPER_ADMIN');
   const isAdmin   = hasRole('ADMIN');
   const isTeacher = hasRole('TEACHER');
@@ -63,46 +65,48 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     notices:             canManage,
     exams:               canManage,
     tenant:              isAdmin || isSuper,
+    master_data:         isAdmin || isSuper,
     settings:            isSuper,
   };
 
   const SECTIONS: NavSection[] = [
     {
-      heading: 'Overview',
+      heading: t('nav.sectionOverview'),
       items: [
-        { key: 'dashboard', label: 'Dashboard', path: '/dashboard',          icon: <LayoutDashboard className="w-[18px] h-[18px]" />, exact: true },
-        { key: 'calendar',  label: 'Calendar',  path: '/dashboard/calendar', icon: <CalendarCheck   className="w-[18px] h-[18px]" /> },
+        { key: 'dashboard', label: t('nav.dashboard'), path: '/dashboard',          icon: <LayoutDashboard className="w-[18px] h-[18px]" />, exact: true },
+        { key: 'calendar',  label: t('nav.calendar'),  path: '/dashboard/calendar', icon: <CalendarCheck   className="w-[18px] h-[18px]" /> },
       ],
     },
     {
-      heading: 'People',
+      heading: t('nav.sectionPeople'),
       items: [
-        { key: 'students', label: 'Students', path: '/dashboard/students', icon: <GraduationCap className="w-[18px] h-[18px]" /> },
-        { key: 'teachers', label: 'Teachers', path: '/dashboard/teachers', icon: <Users         className="w-[18px] h-[18px]" /> },
-        { key: 'parents',  label: 'Parents',  path: '/dashboard/parents',  icon: <Heart         className="w-[18px] h-[18px]" /> },
-        { key: 'admins',   label: 'Admins',   path: '/dashboard/admins',   icon: <Shield        className="w-[18px] h-[18px]" /> },
-        { key: 'users',    label: 'Users',    path: '/dashboard/users',    icon: <UserCog       className="w-[18px] h-[18px]" /> },
+        { key: 'students', label: t('nav.students'), path: '/dashboard/students', icon: <GraduationCap className="w-[18px] h-[18px]" /> },
+        { key: 'teachers', label: t('nav.teachers'), path: '/dashboard/teachers', icon: <Users         className="w-[18px] h-[18px]" /> },
+        { key: 'parents',  label: t('nav.parents'),  path: '/dashboard/parents',  icon: <Heart         className="w-[18px] h-[18px]" /> },
+        { key: 'admins',   label: t('nav.admins'),   path: '/dashboard/admins',   icon: <Shield        className="w-[18px] h-[18px]" /> },
+        { key: 'users',    label: t('nav.users'),    path: '/dashboard/users',    icon: <UserCog       className="w-[18px] h-[18px]" /> },
       ],
     },
     {
-      heading: 'Academic',
+      heading: t('nav.sectionAcademic'),
       items: [
-        { key: 'classes',         label: 'Classes',         path: '/dashboard/classes',              icon: <BookOpen     className="w-[18px] h-[18px]" /> },
-        { key: 'subjects',        label: 'Subjects',        path: '/dashboard/subjects',             icon: <BookOpenText className="w-[18px] h-[18px]" /> },
-        { key: 'academic_years',  label: 'Academic years',  path: '/dashboard/academic-years',       icon: <CalendarRange className="w-[18px] h-[18px]" /> },
-        { key: 'attendance',      label: 'Attendance',      path: '/dashboard/attendance',           icon: <ClipboardCheck className="w-[18px] h-[18px]" /> },
-        { key: 'class_teachers',  label: 'Class teachers',  path: '/dashboard/class-teachers',       icon: <Users        className="w-[18px] h-[18px]" /> },
-        { key: 'assignments',     label: 'Assignments',     path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
-        { key: 'exams',           label: 'Exams',           path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
+        { key: 'classes',         label: t('nav.classes'),            path: '/dashboard/classes',              icon: <BookOpen     className="w-[18px] h-[18px]" /> },
+        { key: 'subjects',        label: t('nav.subjects'),           path: '/dashboard/subjects',             icon: <BookOpenText className="w-[18px] h-[18px]" /> },
+        { key: 'academic_years',  label: t('nav.academicYears'),      path: '/dashboard/academic-years',       icon: <CalendarRange className="w-[18px] h-[18px]" /> },
+        { key: 'attendance',      label: t('nav.attendance'),         path: '/dashboard/attendance',           icon: <ClipboardCheck className="w-[18px] h-[18px]" /> },
+        { key: 'class_teachers',  label: t('nav.classTeachers'),      path: '/dashboard/class-teachers',       icon: <Users        className="w-[18px] h-[18px]" /> },
+        { key: 'assignments',     label: t('nav.teacherAssignments'), path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
+        { key: 'exams',           label: t('nav.exams'),              path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
       ],
     },
     {
-      heading: 'Admin',
+      heading: t('nav.sectionAdmin'),
       items: [
-        { key: 'notices',  label: 'Notices',         path: '/dashboard/notices',  icon: <Bell      className="w-[18px] h-[18px]" /> },
-        { key: 'schools',  label: 'Schools',         path: '/dashboard/schools',  icon: <School    className="w-[18px] h-[18px]" /> },
-        { key: 'tenant',   label: 'School settings', path: '/dashboard/tenant',   icon: <Building2 className="w-[18px] h-[18px]" /> },
-        { key: 'settings', label: 'Settings',        path: '/dashboard/settings', icon: <Settings  className="w-[18px] h-[18px]" /> },
+        { key: 'notices',     label: t('nav.notices'),         path: '/dashboard/notices',     icon: <Bell      className="w-[18px] h-[18px]" /> },
+        { key: 'schools',     label: t('nav.schools'),         path: '/dashboard/schools',     icon: <School    className="w-[18px] h-[18px]" /> },
+        { key: 'tenant',      label: t('nav.schoolSettings'),  path: '/dashboard/tenant',      icon: <Building2 className="w-[18px] h-[18px]" /> },
+        { key: 'master_data', label: t('nav.masterData'),      path: '/dashboard/master-data', icon: <Database  className="w-[18px] h-[18px]" /> },
+        { key: 'settings',    label: t('nav.settings'),        path: '/dashboard/settings',    icon: <Settings  className="w-[18px] h-[18px]" /> },
       ],
     },
   ];
@@ -172,7 +176,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
           className="flex items-center gap-3 w-full px-3 py-2 text-sm text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
         >
           <LogOut className="w-[18px] h-[18px]" />
-          <span>Sign out</span>
+          <span>{t('auth.signOut')}</span>
         </button>
       </div>
     </div>

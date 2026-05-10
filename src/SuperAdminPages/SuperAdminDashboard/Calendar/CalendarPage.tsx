@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import calendarEventService from '../../../services/calendarEvent.service';
 import { useAcademicYear } from '../../../contexts/AcademicYearContext';
+import { useT } from '../../../contexts/I18nContext';
 import type {
   CalendarEventRequest, CalendarEventResponse, CalendarEventType,
 } from '../../../types/calendarEvent';
@@ -46,6 +47,7 @@ function ymd(d: Date) {
 function daysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate(); }
 
 export default function CalendarPage() {
+  const { t } = useT();
   const { active: activeYear } = useAcademicYear();
   const [cursor, setCursor] = useState(new Date());
   const [events, setEvents] = useState<CalendarEventResponse[]>([]);
@@ -166,13 +168,13 @@ export default function CalendarPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Calendar</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>{t('calendar.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            {activeYear ? `Academic year: ${activeYear.name}` : 'No active year'}
+            {activeYear ? t('calendar.academicYear', { name: activeYear.name }) : t('calendar.noActiveYear')}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title="Today">
+          <Tooltip title={t('calendar.today')}>
             <IconButton onClick={() => setCursor(new Date())}><Today /></IconButton>
           </Tooltip>
           <IconButton onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
@@ -186,7 +188,7 @@ export default function CalendarPage() {
           </IconButton>
           <Button startIcon={<Add />} variant="contained" onClick={() => openCreate(new Date())}
             sx={{ ml: 2, background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
-            New event
+            {t('calendar.newEvent')}
           </Button>
         </Stack>
       </Box>
@@ -245,7 +247,7 @@ export default function CalendarPage() {
                       ))}
                       {dayEvents.length > 3 && (
                         <Typography variant="caption" color="text.secondary">
-                          +{dayEvents.length - 3} more
+                          {t('calendar.moreCount', { n: dayEvents.length - 3 })}
                         </Typography>
                       )}
                     </Stack>
@@ -261,22 +263,22 @@ export default function CalendarPage() {
         <DialogTitle>
           <Stack direction="row" alignItems="center" spacing={1}>
             <EventIcon fontSize="small" />
-            {editing ? 'Edit event' : 'New event'}
+            {editing ? t('calendar.editEvent') : t('calendar.newEvent')}
           </Stack>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Title" required value={draft.title}
+            <TextField label={t('calendar.eventTitle')} required value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
             <Stack direction="row" spacing={2}>
-              <TextField type="date" label="Date" required InputLabelProps={{ shrink: true }}
+              <TextField type="date" label={t('calendar.eventDate')} required InputLabelProps={{ shrink: true }}
                 value={draft.eventDate} fullWidth
                 onChange={(e) => setDraft({ ...draft, eventDate: e.target.value })} />
-              <TextField type="date" label="End date" InputLabelProps={{ shrink: true }}
+              <TextField type="date" label={t('calendar.endDate')} InputLabelProps={{ shrink: true }}
                 value={draft.endDate || ''} fullWidth
                 onChange={(e) => setDraft({ ...draft, endDate: e.target.value || undefined })} />
             </Stack>
-            <TextField select label="Type" value={draft.eventType}
+            <TextField select label={t('calendar.type')} value={draft.eventType}
               onChange={(e) => setDraft({ ...draft, eventType: e.target.value as CalendarEventType })}>
               {EVENT_TYPES.map((t) => (
                 <MenuItem key={t} value={t}>
@@ -286,10 +288,10 @@ export default function CalendarPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField label="Description" multiline rows={2} value={draft.description || ''}
+            <TextField label={t('masterData.description')} multiline rows={2} value={draft.description || ''}
               onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
             {(draft.eventType === 'HOLIDAY' || draft.eventType === 'HALF_DAY') && (
-              <TextField select label="Holiday type" value={draft.holidayType || ''}
+              <TextField select label={t('calendar.holidayType')} value={draft.holidayType || ''}
                 onChange={(e) => setDraft({ ...draft, holidayType: e.target.value as any })}>
                 <MenuItem value="">—</MenuItem>
                 {['NATIONAL', 'REGIONAL', 'RELIGIOUS', 'SCHOOL_EVENT', 'TEACHER_TRAINING'].map((t) => (
@@ -303,14 +305,14 @@ export default function CalendarPage() {
           <Box>
             {editing && (
               <Button color="error" startIcon={<Delete />} onClick={() => remove(editing)}>
-                Delete
+                {t('common.delete')}
               </Button>
             )}
           </Box>
           <Box>
-            <Button onClick={() => setOpenDialog(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={() => setOpenDialog(false)} disabled={saving}>{t('common.cancel')}</Button>
             <Button variant="contained" onClick={save} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </Box>
         </DialogActions>

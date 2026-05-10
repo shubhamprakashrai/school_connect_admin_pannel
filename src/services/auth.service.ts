@@ -177,6 +177,31 @@ export const authService = {
     return apiService.get(AUTH_ENDPOINTS.VALIDATE_TOKEN);
   },
 
+  /**
+   * GET /auth/first-login-info?token=… — public.
+   * Returns the user identity associated with a welcome-email token so the
+   * password screen can show "Setting password for {name} ({email})".
+   */
+  firstLoginInfo(token: string): Promise<{
+    userId: string; email: string; fullName: string; tenantId: string; valid: boolean;
+  }> {
+    return apiService.get(AUTH_ENDPOINTS.FIRST_LOGIN_INFO, { params: { token } });
+  },
+
+  /**
+   * POST /auth/first-login — public.
+   * Exchanges a welcome-email token + permanent password for AuthResponse
+   * (auto-login). Persists the session via `rememberMe=true`.
+   */
+  async firstLogin(payload: { token: string; newPassword: string }): Promise<AuthResponse> {
+    const res = await apiService.post<AuthResponse, typeof payload>(
+      AUTH_ENDPOINTS.FIRST_LOGIN,
+      payload,
+    );
+    authStorage.saveSession(res, true);
+    return res;
+  },
+
   storage: authStorage,
 };
 

@@ -94,6 +94,8 @@ const TENANT_AGNOSTIC_PATHS = [
   '/auth/Initialreset-password',
   '/auth/verify-email',
   '/auth/resend-verification',
+  '/auth/first-login-info',
+  '/auth/first-login',
   '/tenants/register',
 ];
 

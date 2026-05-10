@@ -18,6 +18,7 @@ import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Users as UsersIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { parentService } from '../../../services/parent.service';
+import { useT } from '../../../contexts/I18nContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
@@ -34,6 +35,7 @@ const empty: ParentRequest = {
 };
 
 export default function ParentsPage() {
+  const { t } = useT();
   const [allRows, setAllRows] = useState<ParentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,9 +132,11 @@ export default function ParentsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Parents</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>{t('parents.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            {allRows.length === 0 ? 'No parents yet' : `${allRows.length} parent${allRows.length === 1 ? '' : 's'}`}
+            {allRows.length === 0
+              ? t('parents.noParentsYet')
+              : (allRows.length === 1 ? t('parents.countOne') : t('parents.countMany', { n: allRows.length }))}
           </Typography>
         </Box>
         <Button startIcon={<Add />} variant="contained" onClick={openCreate}
@@ -141,18 +145,15 @@ export default function ParentsPage() {
             background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
             boxShadow: '0 8px 24px -8px rgba(236,72,153,0.4)',
           }}>
-          Add parent
+          {t('parents.addParent')}
         </Button>
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        <strong>Tip:</strong> Parents are normally created automatically when you enrol a student
-        with father / mother / guardian details on the <em>Add Student</em> form. Adding a parent
-        here creates a standalone record that isn't linked to any student. To link a parent to a
-        student, fill the parent's name + phone in the student's <em>Family</em> step during enrolment.
+        {t('parents.hint')}
       </Alert>
 
-      <TextField fullWidth size="small" placeholder="Search by name, email or phone…"
+      <TextField fullWidth size="small" placeholder={t('common.search')}
         value={search} onChange={(e) => setSearch(e.target.value)}
         InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
         sx={{ mb: 3, maxWidth: 480 }} />
@@ -162,12 +163,12 @@ export default function ParentsPage() {
           <Table>
             <TableHead sx={{ background: 'rgba(236,72,153,0.06)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Parent</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Children</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Portal</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('parents.title')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('parents.typeColumn')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('common.phone')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('parents.childrenColumn')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('parents.portalColumn')}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>{t('common.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -183,14 +184,14 @@ export default function ParentsPage() {
                 <TableRow><TableCell colSpan={6} sx={{ py: 0 }}>
                   <EmptyState
                     icon={UsersIcon}
-                    title={debouncedSearch ? 'No matches' : 'No parents yet'}
+                    title={debouncedSearch ? t('parents.noMatches') : t('parents.noParentsYet')}
                     description={
                       debouncedSearch
-                        ? `No parents match "${debouncedSearch}"`
-                        : 'Add a student with father / mother details to auto-create their parent record.'
+                        ? t('common.noResults')
+                        : t('parents.hint')
                     }
                     action={!debouncedSearch
-                      ? <Button startIcon={<Add />} variant="contained" onClick={openCreate}>Add parent</Button>
+                      ? <Button startIcon={<Add />} variant="contained" onClick={openCreate}>{t('parents.addParent')}</Button>
                       : undefined}
                   />
                 </TableCell></TableRow>
@@ -218,19 +219,19 @@ export default function ParentsPage() {
                       <TableCell>{p.phone || '—'}</TableCell>
                       <TableCell>
                         {childCount > 0 ? (
-                          <Chip size="small" label={`${childCount} linked`} color="success" />
+                          <Chip size="small" label={t('parents.childrenLinked', { n: childCount })} color="success" />
                         ) : (
-                          <Chip size="small" label="Unlinked" variant="outlined" color="warning" />
+                          <Chip size="small" label={t('parents.childrenUnlinked')} variant="outlined" color="warning" />
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={p.portalAccessEnabled ? 'Enabled' : 'Disabled'}
+                        <Chip size="small" label={p.portalAccessEnabled ? t('common.enabled') : t('common.disabled')}
                           color={p.portalAccessEnabled ? 'success' : 'default'} />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)}>
+                        <Tooltip title={t('common.edit')}><IconButton size="small" onClick={() => openEdit(p)}>
                           <Edit fontSize="small" /></IconButton></Tooltip>
-                        <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => remove(p)}>
+                        <Tooltip title={t('common.delete')}><IconButton size="small" color="error" onClick={() => remove(p)}>
                           <Delete fontSize="small" /></IconButton></Tooltip>
                       </TableCell>
                     </TableRow>
@@ -247,12 +248,11 @@ export default function ParentsPage() {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editing ? 'Edit parent' : 'Add parent'}</DialogTitle>
+        <DialogTitle>{editing ? t('parents.editParent') : t('parents.addParent')}</DialogTitle>
         <DialogContent>
           {!editing && (
             <Alert severity="warning" sx={{ mb: 2 }}>
-              This creates a standalone parent record. To link them to a student,
-              enrol the student with this parent's name + phone in the <em>Family</em> step.
+              {t('parents.standaloneWarning')}
             </Alert>
           )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -293,8 +293,8 @@ export default function ParentsPage() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
-          <Button variant="contained" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+          <Button onClick={() => setOpen(false)} disabled={saving}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={save} disabled={saving}>{saving ? t('common.saving') : t('common.save')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

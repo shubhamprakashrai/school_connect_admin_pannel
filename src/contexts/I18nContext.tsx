@@ -15,11 +15,19 @@ import { translations, type Dictionary, type Locale } from '../i18n/translations
 
 const STORAGE_KEY = 'sc_locale';
 
+type TVars = Record<string, string | number>;
+
 interface I18nValue {
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: (key: string) => string;
+  /** Translate `key`. Placeholders like `{name}` are substituted from `vars`. */
+  t: (key: string, vars?: TVars) => string;
   available: Locale[];
+}
+
+function interpolate(s: string, vars?: TVars): string {
+  if (!vars) return s;
+  return s.replace(/\{(\w+)\}/g, (_, k: string) => (k in vars ? String(vars[k]) : `{${k}}`));
 }
 
 const I18nContext = createContext<I18nValue | null>(null);
@@ -58,10 +66,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, l);
   }, []);
 
-  const t = useCallback(
-    (key: string) => get(translations[locale] as Dictionary, key)
-      ?? get(translations.en, key)
-      ?? key,
+  const t = useCallback<I18nValue['t']>(
+    (key, vars) => {
+      const raw = get(translations[locale] as Dictionary, key)
+        ?? get(translations.en, key)
+        ?? key;
+      return interpolate(raw, vars);
+    },
     [locale],
   );
 

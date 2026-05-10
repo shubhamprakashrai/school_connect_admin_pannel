@@ -20,8 +20,10 @@ import teacherService from '../../../services/teacher.service';
 import schoolClassService from '../../../services/schoolClass.service';
 import calendarEventService from '../../../services/calendarEvent.service';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useT } from '../../../contexts/I18nContext';
 import { useAcademicYear } from '../../../contexts/AcademicYearContext';
 import UsagePanel from '../../../components/ui/UsagePanel';
+import OperationsPanel from '../../../components/ui/OperationsPanel';
 import type { StudentStatistics } from '../../../types/student';
 import type { CalendarEventResponse } from '../../../types/calendarEvent';
 
@@ -78,6 +80,7 @@ function buildTrend() {
 
 export function Dashboard() {
   const { user } = useAuth();
+  const { t } = useT();
   const { active: activeYear } = useAcademicYear();
   const navigate = useNavigate();
 
@@ -123,10 +126,10 @@ export function Dashboard() {
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+    if (h < 12) return t('dashboard.goodMorning');
+    if (h < 17) return t('dashboard.goodAfternoon');
+    return t('dashboard.goodEvening');
+  }, [t]);
 
   return (
     <div className="space-y-6">
@@ -144,7 +147,7 @@ export function Dashboard() {
               {greeting}, {user?.firstName || 'there'}
             </h1>
             <p className="text-white/80 mt-1 text-sm md:text-base">
-              Here's what's happening in your school today.
+              {t('dashboard.whatsHappening')}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -152,19 +155,19 @@ export function Dashboard() {
               onClick={() => navigate('/dashboard/students/add')}
               className="inline-flex items-center gap-1 bg-white text-ink-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/90 transition"
             >
-              <UserPlus className="w-4 h-4" /> Add student
+              <UserPlus className="w-4 h-4" /> {t('dashboard.addStudent')}
             </button>
             <button
               onClick={() => navigate('/dashboard/attendance/mark')}
               className="inline-flex items-center gap-1 bg-white/15 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/20 transition"
             >
-              <ClipboardCheck className="w-4 h-4" /> Mark attendance
+              <ClipboardCheck className="w-4 h-4" /> {t('dashboard.markAttendance')}
             </button>
             <button
               onClick={() => navigate('/dashboard/students/bulk-import')}
               className="inline-flex items-center gap-1 bg-white/15 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/20 transition"
             >
-              <FileSpreadsheet className="w-4 h-4" /> Bulk import
+              <FileSpreadsheet className="w-4 h-4" /> {t('dashboard.bulkImport')}
             </button>
           </div>
         </div>
@@ -173,10 +176,13 @@ export function Dashboard() {
       {/* Plan usage */}
       <UsagePanel />
 
+      {/* Fee + leave ops snapshot — backend currently stubbed, panels show "Soon" badges */}
+      <OperationsPanel />
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Active students"
+          label={t('dashboard.activeStudents')}
           value={loading ? '…' : (stats?.activeStudents ?? stats?.totalStudents ?? 0)}
           delta="+4.2% mo/mo"
           icon={GraduationCap}
@@ -185,7 +191,7 @@ export function Dashboard() {
           to="/dashboard/students"
         />
         <StatCard
-          label="Teachers"
+          label={t('dashboard.teachers')}
           value={loading ? '…' : teacherCount}
           delta="+1.8% mo/mo"
           icon={Users}
@@ -194,7 +200,7 @@ export function Dashboard() {
           to="/dashboard/teachers"
         />
         <StatCard
-          label="Classes"
+          label={t('dashboard.classes')}
           value={loading ? '…' : classCount}
           icon={BookMarked}
           gradient="from-accent-emerald to-accent-cyan"
@@ -202,7 +208,7 @@ export function Dashboard() {
           to="/dashboard/classes"
         />
         <StatCard
-          label="Upcoming events"
+          label={t('dashboard.upcomingEvents')}
           value={loading ? '…' : upcoming.length}
           icon={Calendar}
           gradient="from-amber-500 to-accent-pink"
@@ -216,10 +222,10 @@ export function Dashboard() {
         <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 shadow-card-soft">
           <div className="flex items-center justify-between mb-1">
             <div>
-              <div className="text-sm text-ink-500">Attendance trend</div>
-              <div className="text-lg font-semibold text-ink-900">Last 7 days</div>
+              <div className="text-sm text-ink-500">{t('dashboard.attendanceTrend')}</div>
+              <div className="text-lg font-semibold text-ink-900">{t('dashboard.last7Days')}</div>
             </div>
-            <div className="text-xs text-emerald-600 font-semibold">Live</div>
+            <div className="text-xs text-emerald-600 font-semibold">{t('dashboard.live')}</div>
           </div>
           <div className="h-64 mt-4">
             <ResponsiveContainer width="100%" height="100%">

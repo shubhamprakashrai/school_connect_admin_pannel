@@ -4,6 +4,7 @@
  */
 
 import { AlertTriangle, RotateCw } from 'lucide-react';
+import { useT } from '../../contexts/I18nContext';
 
 interface ErrorStateProps {
   title?: string;
@@ -13,11 +14,13 @@ interface ErrorStateProps {
 }
 
 export default function ErrorState({
-  title = 'Something went wrong',
+  title,
   message,
   onRetry,
   size = 'md',
 }: ErrorStateProps) {
+  const { t } = useT();
+  const heading = title ?? t('states.somethingWentWrong');
   const padding = size === 'sm' ? 'py-8' : size === 'lg' ? 'py-16' : 'py-12';
   return (
     <div className={`text-center ${padding}`}>
@@ -26,7 +29,7 @@ export default function ErrorState({
           <AlertTriangle className="w-5 h-5" />
         </div>
       </div>
-      <h3 className="text-lg font-semibold text-ink-900 font-display">{title}</h3>
+      <h3 className="text-lg font-semibold text-ink-900 font-display">{heading}</h3>
       {message && (
         <p className="text-sm text-ink-500 mt-1 max-w-md mx-auto">{message}</p>
       )}
@@ -36,7 +39,7 @@ export default function ErrorState({
           className="mt-4 inline-flex items-center gap-1 px-4 py-2 rounded-lg text-white bg-brand-gradient shadow-glow-brand hover:opacity-95 transition"
         >
           <RotateCw className="w-4 h-4" />
-          Try again
+          {t('common.retry')}
         </button>
       )}
     </div>

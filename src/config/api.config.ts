@@ -50,6 +50,10 @@ export const AUTH_ENDPOINTS = {
   CHANGE_PASSWORD: '/auth/change-password',
   ADMIN_RESET_PASSWORD: '/auth/admin-reset-password',
   VALIDATE_TOKEN: '/auth/validate-token',
+  /** GET ?token=… — public — return user identity for the welcome-email password screen. */
+  FIRST_LOGIN_INFO: '/auth/first-login-info',
+  /** POST { token, newPassword } — public — exchange welcome-email token + permanent password for AuthResponse. */
+  FIRST_LOGIN: '/auth/first-login',
 } as const;
 
 /** /admins/* — AdminController */
@@ -261,6 +265,30 @@ export const MOBILE_CONFIG_ENDPOINTS = {
   ROOT: '/config',
 } as const;
 
+/** /master-data/* — MasterDataController. Tenant-scoped lookup tables (DESIGNATION, DEPARTMENT, BLOOD_GROUP, etc). */
+export const MASTER_DATA_ENDPOINTS = {
+  ROOT: '/master-data',
+  ALL: '/master-data/all',
+  CATEGORIES: '/master-data/categories',
+  byId: (id: string | number) => `/master-data/${id}`,
+} as const;
+
+/** /notifications/* — NotificationController. FCM token registration. */
+export const NOTIFICATION_ENDPOINTS = {
+  TOKEN: '/notifications/token',
+} as const;
+
+/** /fees/* — FeeController (stub). Real domain pending — endpoints return zero/empty. */
+export const FEE_ENDPOINTS = {
+  OVERDUE: '/fees/overdue',
+  COLLECTION_REPORT: '/fees/report/collection',
+} as const;
+
+/** /leave/* — LeaveController (stub). Real workflow pending. */
+export const LEAVE_ENDPOINTS = {
+  PENDING: '/leave/requests/pending',
+} as const;
+
 // ---------------------------------------------------------------------------
 // Convenience export — single object containing every group.
 // Use this when iterating, debugging, or wiring a generic API explorer.
@@ -289,6 +317,10 @@ export const API_ENDPOINTS = {
   STUDENT_ATTENDANCE: STUDENT_ATTENDANCE_ENDPOINTS,
   CALENDAR_EVENT: CALENDAR_EVENT_ENDPOINTS,
   MOBILE_CONFIG: MOBILE_CONFIG_ENDPOINTS,
+  MASTER_DATA: MASTER_DATA_ENDPOINTS,
+  NOTIFICATION: NOTIFICATION_ENDPOINTS,
+  FEE: FEE_ENDPOINTS,
+  LEAVE: LEAVE_ENDPOINTS,
 } as const;
 
 export default {

@@ -76,6 +76,7 @@ const TeacherAttendancePage = lazy(() => import('./SuperAdminPages/SuperAdminDas
 const BulkSubjectsPage   = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/SubjectManagement/pages/BulkSubjectsPage'));
 const TenantSettingsPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Tenant/TenantSettingsPage'));
 const AdminProfilePage   = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Profile/AdminProfilePage'));
+const MasterDataPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/MasterData/MasterDataPage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -95,6 +96,7 @@ const StudentCalendar    = lazy(() => import('./student/StudentCalendar'));
 // Auth (public)
 const ForgotPasswordPage = lazy(() => import('./components/auth/ForgotPasswordPage'));
 const ResetPasswordPage  = lazy(() => import('./components/auth/ResetPasswordPage'));
+const FirstLoginPage     = lazy(() => import('./components/auth/FirstLoginPage'));
 const VerifyEmailPage    = lazy(() => import('./components/auth/VerifyEmailPage'));
 const ChangePasswordPage = lazy(() => import('./components/auth/ChangePasswordPage'));
 const RegisterSchoolPage = lazy(() => import('./components/auth/RegisterSchoolPage'));
@@ -314,6 +316,7 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                   <Route path="schedule" element={<ScheduleExamPage />} />
                   <Route path="results" element={<ExamResultsPage />} />
                 </Route>
+                <Route path="master-data" element={<MasterDataPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
               </Routes>
@@ -370,6 +373,10 @@ function AppRoutes() {
       <Route
         path="/reset-password"
         element={<Suspense fallback={<PageSpinner />}><ResetPasswordPage /></Suspense>}
+      />
+      <Route
+        path="/first-login"
+        element={<Suspense fallback={<PageSpinner />}><FirstLoginPage /></Suspense>}
       />
       <Route
         path="/verify-email"
