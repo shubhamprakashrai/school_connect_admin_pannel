@@ -14,6 +14,12 @@ import type { SchoolClassResponse, SectionResponse } from './schoolClass';
 
 export interface StudentResponse {
   id: string;
+  /**
+   * UUID of the backing User account (distinct from the Student entity id).
+   * Required when calling `/auth/admin-reset-password` and any other route
+   * that operates on the User principal rather than the Student record.
+   */
+  userId?: string;
   rollNumber: string;
   firstName: string;
   middleName?: string;

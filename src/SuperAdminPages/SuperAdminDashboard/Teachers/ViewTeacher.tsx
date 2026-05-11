@@ -8,6 +8,7 @@ import {
 import { ArrowBack, Edit, Mail, Phone, AttachMoney, School } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import teacherService, { teacherAssignmentService } from '../../../services/teacher.service';
+import AdminResetPasswordButton from '../../../components/ui/AdminResetPasswordButton';
 import type { TeacherAssignmentResponse, TeacherResponse } from '../../../types/teacher';
 
 export default function ViewTeacher() {
@@ -41,6 +42,8 @@ export default function ViewTeacher() {
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/teachers')}>Back</Button>
         <Box sx={{ flex: 1 }} />
+        <AdminResetPasswordButton userId={teacher.userId}
+          subjectName={teacher.fullName || [teacher.firstName, teacher.lastName].filter(Boolean).join(' ')} />
         <Button startIcon={<Edit />} variant="outlined"
           onClick={() => navigate(`/dashboard/teachers/${teacher.id}/edit`)}>Edit</Button>
       </Stack>

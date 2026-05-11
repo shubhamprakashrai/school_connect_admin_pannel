@@ -4,6 +4,12 @@ import type { BankDetails, Gender, UserRequestDto } from './common';
 
 export interface TeacherResponse {
   id: string;
+  /**
+   * UUID of the backing User account (distinct from the Teacher entity id).
+   * Required when calling `/auth/admin-reset-password` and any other route
+   * that operates on the User principal rather than the Teacher record.
+   */
+  userId?: string;
   employeeId: string;
   firstName: string;
   middleName?: string;

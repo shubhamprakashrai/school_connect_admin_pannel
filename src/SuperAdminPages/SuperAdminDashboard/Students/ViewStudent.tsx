@@ -12,6 +12,7 @@ import {
 import { toast } from 'react-toastify';
 import studentService from '../../../services/student.service';
 import { studentAttendanceService } from '../../../services/attendance.service';
+import AdminResetPasswordButton from '../../../components/ui/AdminResetPasswordButton';
 import type { StudentResponse } from '../../../types/student';
 import type { AttendanceSummaryResponse } from '../../../types/attendance';
 
@@ -77,6 +78,8 @@ export default function ViewStudent() {
         <Button startIcon={<Print />} variant="outlined" onClick={() => window.print()}>
           Print
         </Button>
+        <AdminResetPasswordButton userId={student.userId}
+          subjectName={student.fullName || [student.firstName, student.lastName].filter(Boolean).join(' ')} />
         <Button startIcon={<Edit />} variant="outlined"
           onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}>
           Edit
