@@ -1,14 +1,19 @@
 /**
  * Student profile — read-only.
- * Pulls /students/{me} (the user.id is the student id for STUDENT role).
+ *
+ * Tries `GET /students/{user.id}` opportunistically: when the User UUID
+ * happens to match a Student entity id (or backend resolves "me"), we get
+ * the record. In most cases the two ids differ, so we expect 403/404 — the
+ * student portal needs a dedicated `/student-portal/profile` endpoint
+ * mirroring `/parent-portal/profile`. Until that ships, we render a clear
+ * "account not linked" state instead of confusing the user.
  */
 
 import { useEffect, useState } from 'react';
 import {
-  Box, Chip, CircularProgress, Divider, Grid, Paper, Stack, Typography,
+  Alert, Box, Chip, CircularProgress, Divider, Grid, Paper, Stack, Typography,
 } from '@mui/material';
 import { Cake, Mail, Phone, Printer, GraduationCap as GcapIcon } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 import studentService from '../services/student.service';
 import type { StudentResponse } from '../types/student';
@@ -17,12 +22,22 @@ export default function StudentProfile() {
   const { user } = useAuth();
   const [student, setStudent] = useState<StudentResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     studentService.getById(user.id)
       .then(setStudent)
-      .catch((err) => toast.error(err.message || 'Failed to load profile'))
+      .catch((err) => {
+        const status = (err as { statusCode?: number }).statusCode;
+        // Suppress 403 / 404 because they're the expected "user.id ≠
+        // student.id" linkage gap, not a real failure to investigate.
+        setError(
+          status === 403 || status === 404
+            ? 'Your student record is not yet linked to this login account.'
+            : (err as { message?: string }).message || 'Failed to load profile',
+        );
+      })
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -34,7 +49,23 @@ export default function StudentProfile() {
     );
   }
   if (!student) {
-    return <Typography color="text.secondary" align="center" sx={{ py: 6 }}>Profile unavailable.</Typography>;
+    return (
+      <Box sx={{ maxWidth: 560, mx: 'auto', py: 6 }}>
+        <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Profile not available
+          </Typography>
+          <Typography variant="body2">
+            {error || 'No student profile is linked to this login.'}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Please ask your school administrator to link your student record
+            to email <strong>{user?.email}</strong>. Once linked, your profile,
+            attendance and calendar will appear here.
+          </Typography>
+        </Alert>
+      </Box>
+    );
   }
 
   const fullName = student.fullName || `${student.firstName} ${student.lastName}`;

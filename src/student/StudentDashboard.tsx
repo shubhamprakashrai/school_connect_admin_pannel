@@ -33,11 +33,19 @@ export default function StudentDashboard() {
   const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
   const [events, setEvents] = useState<CalendarEventResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  /**
+   * True once initial fetches finish and the student record is still null —
+   * almost always means the User UUID ≠ Student entity UUID (the backend has
+   * no /student-portal endpoint yet). Surfaced as a friendly banner instead
+   * of silently rendering empty stats.
+   */
+  const [linkageMissing, setLinkageMissing] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     let alive = true;
     setLoading(true);
+    setLinkageMissing(false);
     const today = new Date();
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     const monthAhead = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -53,6 +61,7 @@ export default function StudentDashboard() {
       if (s.status === 'fulfilled') setStudent(s.value);
       if (sum.status === 'fulfilled') setSummary(sum.value);
       if (ev.status === 'fulfilled') setEvents(ev.value || []);
+      if (s.status !== 'fulfilled' || !s.value) setLinkageMissing(true);
     }).finally(() => alive && setLoading(false));
 
     return () => { alive = false; };
@@ -97,6 +106,17 @@ export default function StudentDashboard() {
           </p>
         </div>
       </div>
+
+      {linkageMissing && !loading && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+          <div className="font-semibold mb-0.5">Your student record isn't linked yet</div>
+          <div>
+            We could not find a student profile attached to your account (<strong>{user?.email}</strong>).
+            Please ask your school admin to link your enrolment to this login — once done,
+            attendance, calendar and class details will appear here.
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <CardGridSkeleton count={3} />
