@@ -89,8 +89,41 @@ export default function ParentsPage() {
       });
       setRows(res.content || []);
       setTotal(res.totalElements ?? 0);
-    } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load parents');
+    } catch (searchErr) {
+      // POST /parents/search is new (May 2026). If production hasn't shipped
+      // it yet, or the backend's native query errors, transparently degrade
+      // to the legacy `GET /parents` (flat array) + client-side filter/page.
+      // eslint-disable-next-line no-console
+      console.warn('[Parents] /parents/search failed, falling back to GET /parents', searchErr);
+      try {
+        const all = await parentService.list();
+        const q = debouncedSearch.trim().toLowerCase();
+        const filtered = q
+          ? all.filter((p) =>
+              `${p.firstname} ${p.middlename ?? ''} ${p.lastname}`.toLowerCase().includes(q) ||
+              (p.email || '').toLowerCase().includes(q) ||
+              (p.phone || '').includes(q),
+            )
+          : all;
+        const start = page * rowsPerPage;
+        const slim: ParentSearchResult[] = filtered
+          .slice(start, start + rowsPerPage)
+          .map((p) => ({
+            parentId: p.parentId,
+            parentUserId: p.userId,
+            firstName: p.firstname,
+            lastName: p.lastname,
+            fullName: [p.firstname, p.middlename, p.lastname].filter(Boolean).join(' ').trim(),
+            email: p.email,
+            phone: p.phone,
+          }));
+        setRows(slim);
+        setTotal(filtered.length);
+      } catch (listErr) {
+        setError((listErr as { message?: string }).message
+          || (searchErr as { message?: string }).message
+          || 'Failed to load parents');
+      }
     } finally {
       setLoading(false);
     }
