@@ -56,8 +56,14 @@ export const parentPortalService = {
   childDetail(studentId: string): Promise<StudentResponse> {
     return apiService.get(PARENT_PORTAL_ENDPOINTS.studentById(studentId));
   },
-  /** GET /parent-portal/students/{studentId}/access-check */
-  accessCheck(studentId: string): Promise<{ allowed: boolean }> {
+  /**
+   * GET /parent-portal/students/{studentId}/access-check
+   *
+   * Backend returns a raw `Boolean` body — NOT a `{ allowed: boolean }`
+   * envelope. We expose `Promise<boolean>` so callers compare against the
+   * primitive directly.
+   */
+  accessCheck(studentId: string): Promise<boolean> {
     return apiService.get(PARENT_PORTAL_ENDPOINTS.accessCheck(studentId));
   },
   /** GET /parent-portal/profile */

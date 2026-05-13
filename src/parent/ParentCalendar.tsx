@@ -31,14 +31,24 @@ export default function ParentCalendar() {
   const [cursor, setCursor] = useState(new Date());
   const [events, setEvents] = useState<CalendarEventResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  /** /calendar-events/* is admin/teacher only — 403 for PARENT. Surface that
+   *  with a single non-blocking banner instead of a toast on every month-flip. */
+  const [restricted, setRestricted] = useState(false);
 
   useEffect(() => {
     const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
     const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
     setLoading(true);
     calendarEventService.byRange(ymd(start), ymd(end))
-      .then(setEvents)
-      .catch((err) => toast.error(err.message || 'Failed to load events'))
+      .then((ev) => { setEvents(ev || []); setRestricted(false); })
+      .catch((err) => {
+        setEvents([]);
+        if ((err as { statusCode?: number }).statusCode === 403) {
+          setRestricted(true);
+        } else {
+          toast.error((err as { message?: string }).message || 'Failed to load events');
+        }
+      })
       .finally(() => setLoading(false));
   }, [cursor]);
 
@@ -70,6 +80,15 @@ export default function ParentCalendar() {
 
   return (
     <div className="space-y-4">
+      {restricted && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+          <div className="font-semibold mb-0.5">School calendar isn't available yet</div>
+          <div>
+            The server doesn't expose the calendar feed to parent accounts. Holidays, exams
+            and events will appear here once your school enables parent calendar access.
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="text-sm text-ink-500 dark:text-slate-400">School calendar</div>

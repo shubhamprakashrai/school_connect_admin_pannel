@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { GraduationCap } from 'lucide-react';
 import studentService from '../../../services/student.service';
+import { useAuth } from '../../../contexts/AuthContext';
 import { exportToCsv } from '../../../utils/exporters';
 import usePersistedState from '../../../utils/usePersistedState';
 import schoolClassService, { sectionService } from '../../../services/schoolClass.service';
@@ -39,6 +40,11 @@ const GENDER_OPTS = ['ALL', 'MALE', 'FEMALE', 'OTHER'] as const;
 
 export default function StudentList() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  // Backend's /students POST/PATCH/DELETE is ADMIN/SUPER_ADMIN only.
+  // Teachers can read the list but can't add/edit/delete; hide the write
+  // buttons for them so we don't surface 403-throwing actions in the UI.
+  const canManageStudents = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
 
   const [data, setData] = useState<Page<StudentResponse> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -207,26 +213,30 @@ export default function StudentList() {
           >
             Export
           </Button>
-          <Button
-            startIcon={<PersonAdd />}
-            variant="outlined"
-            onClick={() => navigate('/dashboard/students/bulk-import')}
-          >
-            Bulk import
-          </Button>
-          <Button
-            startIcon={<Add />}
-            variant="contained"
-            onClick={() => navigate('/dashboard/students/add')}
-            sx={{
-              textTransform: 'none',
-              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-              boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
-              '&:hover': { background: 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)' },
-            }}
-          >
-            Add student
-          </Button>
+          {canManageStudents && (
+            <>
+              <Button
+                startIcon={<PersonAdd />}
+                variant="outlined"
+                onClick={() => navigate('/dashboard/students/bulk-import')}
+              >
+                Bulk import
+              </Button>
+              <Button
+                startIcon={<Add />}
+                variant="contained"
+                onClick={() => navigate('/dashboard/students/add')}
+                sx={{
+                  textTransform: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                  boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
+                  '&:hover': { background: 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)' },
+                }}
+              >
+                Add student
+              </Button>
+            </>
+          )}
         </Stack>
       </Box>
 
@@ -327,13 +337,13 @@ export default function StudentList() {
                     icon={GraduationCap}
                     title="No students match these filters"
                     description="Try widening the filters or enroll your first student to get started."
-                    action={
-                      <Button startIcon={<Add />} variant="contained"
-                        onClick={() => navigate('/dashboard/students/add')}
-                        sx={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
-                        Add student
-                      </Button>
-                    }
+                    action={canManageStudents
+                      ? <Button startIcon={<Add />} variant="contained"
+                          onClick={() => navigate('/dashboard/students/add')}
+                          sx={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+                          Add student
+                        </Button>
+                      : undefined}
                   />
                 </TableCell></TableRow>
               ) : (
@@ -402,10 +412,12 @@ export default function StudentList() {
         <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/students/${activeRow.id}`); setMenuAnchor(null); }}>
           <Visibility fontSize="small" sx={{ mr: 1 }} /> View
         </MenuItem>
-        <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/students/${activeRow.id}/edit`); setMenuAnchor(null); }}>
-          <Edit fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-        {activeRow?.status === 'ACTIVE' ? (
+        {canManageStudents && (
+          <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/students/${activeRow.id}/edit`); setMenuAnchor(null); }}>
+            <Edit fontSize="small" sx={{ mr: 1 }} /> Edit
+          </MenuItem>
+        )}
+        {canManageStudents && (activeRow?.status === 'ACTIVE' ? (
           <MenuItem onClick={() => activeRow && handleSetStatus(activeRow, 'INACTIVE')}>
             <Block fontSize="small" sx={{ mr: 1 }} /> Mark inactive
           </MenuItem>
@@ -413,10 +425,12 @@ export default function StudentList() {
           <MenuItem onClick={() => activeRow && handleSetStatus(activeRow, 'ACTIVE')}>
             <CheckCircle fontSize="small" sx={{ mr: 1 }} /> Mark active
           </MenuItem>
+        ))}
+        {canManageStudents && (
+          <MenuItem sx={{ color: 'error.main' }} onClick={() => activeRow && handleDelete(activeRow)}>
+            <Delete fontSize="small" sx={{ mr: 1 }} /> Delete
+          </MenuItem>
         )}
-        <MenuItem sx={{ color: 'error.main' }} onClick={() => activeRow && handleDelete(activeRow)}>
-          <Delete fontSize="small" sx={{ mr: 1 }} /> Delete
-        </MenuItem>
       </Menu>
     </Box>
   );

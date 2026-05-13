@@ -22,7 +22,13 @@ import type { AttendanceSummaryResponse } from '../types/attendance';
 
 type Period = 'week' | 'month' | 'quarter';
 
-function ymd(d: Date) { return d.toISOString().slice(0, 10); }
+/** Local YYYY-MM-DD — toISOString shifts dates by ±1 day in non-UTC timezones. */
+function ymd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function rangeFor(p: Period): { startDate: string; endDate: string } {
   const today = new Date();
@@ -50,9 +56,11 @@ export default function ChildDetailPage() {
 
     (async () => {
       try {
-        const access = await parentPortalService.accessCheck(id).catch(() => ({ allowed: true }));
+        // Backend returns a raw boolean; treat any failure as "allow + fall
+        // through" so a missing access-check doesn't lock the user out.
+        const allowed = await parentPortalService.accessCheck(id).catch(() => true);
         if (!alive) return;
-        if (!access.allowed) {
+        if (allowed === false) {
           setDenied(true);
           setLoading(false);
           return;

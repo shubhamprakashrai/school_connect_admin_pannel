@@ -30,7 +30,13 @@ interface ChildWithSummary extends ParentChildSummary {
   summary?: AttendanceSummaryResponse;
 }
 
-function ymd(d: Date) { return d.toISOString().slice(0, 10); }
+/** Local YYYY-MM-DD — toISOString shifts dates by ±1 day in non-UTC timezones. */
+function ymd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 export default function ParentDashboard() {
   const { user } = useAuth();
@@ -38,6 +44,12 @@ export default function ParentDashboard() {
   const [children, setChildren] = useState<ChildWithSummary[]>([]);
   const [events, setEvents] = useState<CalendarEventResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  /**
+   * Backend's /calendar-events/* PreAuthorize allows ADMIN/SUPER_ADMIN/
+   * TEACHER/STAFF only — PARENT calls get a 403. Track that so we can
+   * show a clearer "feature unavailable" note instead of "Nothing scheduled".
+   */
+  const [calendarRestricted, setCalendarRestricted] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -70,7 +82,13 @@ export default function ParentDashboard() {
     calendarEventService
       .byRange(ymd(today), ymd(monthAhead))
       .then((ev) => alive && setEvents(ev || []))
-      .catch(() => alive && setEvents([]))
+      .catch((err) => {
+        if (!alive) return;
+        setEvents([]);
+        if ((err as { statusCode?: number }).statusCode === 403) {
+          setCalendarRestricted(true);
+        }
+      })
       .finally(() => alive && setLoading(false));
 
     return () => { alive = false; };
@@ -224,7 +242,9 @@ export default function ParentDashboard() {
         </div>
         {events.length === 0 ? (
           <div className="text-sm text-ink-300 dark:text-slate-500 py-4 text-center">
-            Nothing scheduled in the next 30 days.
+            {calendarRestricted
+              ? 'School calendar is not enabled for parent accounts yet.'
+              : 'Nothing scheduled in the next 30 days.'}
           </div>
         ) : (
           <div className="space-y-1.5">

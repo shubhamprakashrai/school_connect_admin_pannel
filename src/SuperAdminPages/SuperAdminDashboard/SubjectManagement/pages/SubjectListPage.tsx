@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import subjectService from '../../../../services/subject.service';
 import schoolClassService from '../../../../services/schoolClass.service';
 import teacherService from '../../../../services/teacher.service';
+import { useAuth } from '../../../../contexts/AuthContext';
 import type { SubjectResponse } from '../../../../types/subject';
 import type { Page } from '../../../../types/tenant';
 import type { SchoolClassResponse } from '../../../../types/schoolClass';
@@ -27,6 +28,9 @@ function useDebounced<T>(v: T, d = 350): T {
 
 export default function SubjectListPage() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  // Subject create/edit/delete/assignment is ADMIN/SUPER_ADMIN; teachers & students can read.
+  const canManageSubjects = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
   const [data, setData] = useState<Page<SubjectResponse> | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -118,20 +122,22 @@ export default function SubjectListPage() {
           <Typography variant="h5" sx={{ fontWeight: 700 }}>Subjects</Typography>
           <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
-          <Button startIcon={<FileUpload />} variant="outlined"
-            onClick={() => navigate('/dashboard/subjects/bulk-import')}>
-            Bulk import
-          </Button>
-          <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/subjects/add')}
-            sx={{
-              textTransform: 'none',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #ec4899 100%)',
-              boxShadow: '0 8px 24px -8px rgba(245,158,11,0.4)',
-            }}>
-            Add subject
-          </Button>
-        </Stack>
+        {canManageSubjects && (
+          <Stack direction="row" spacing={1}>
+            <Button startIcon={<FileUpload />} variant="outlined"
+              onClick={() => navigate('/dashboard/subjects/bulk-import')}>
+              Bulk import
+            </Button>
+            <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/subjects/add')}
+              sx={{
+                textTransform: 'none',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #ec4899 100%)',
+                boxShadow: '0 8px 24px -8px rgba(245,158,11,0.4)',
+              }}>
+              Add subject
+            </Button>
+          </Stack>
+        )}
       </Box>
 
       <TextField fullWidth size="small" placeholder="Search subjects…"
@@ -182,21 +188,27 @@ export default function SubjectListPage() {
                         color={s.isActive === false ? 'default' : 'success'} />
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Assign to class / teacher">
-                        <IconButton size="small" onClick={() => openAssign(s)}>
-                          <LinkIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton size="small" onClick={() => navigate(`/dashboard/subjects/edit/${s.id}`)}>
-                          <Edit fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => handleDelete(s)}>
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {canManageSubjects && (
+                        <Tooltip title="Assign to class / teacher">
+                          <IconButton size="small" onClick={() => openAssign(s)}>
+                            <LinkIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canManageSubjects && (
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => navigate(`/dashboard/subjects/edit/${s.id}`)}>
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canManageSubjects && (
+                        <Tooltip title="Delete">
+                          <IconButton size="small" color="error" onClick={() => handleDelete(s)}>
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

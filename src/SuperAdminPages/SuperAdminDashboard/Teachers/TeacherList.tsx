@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Users as UsersIcon } from 'lucide-react';
 import teacherService from '../../../services/teacher.service';
+import { useAuth } from '../../../contexts/AuthContext';
 import { exportToCsv } from '../../../utils/exporters';
 import usePersistedState from '../../../utils/usePersistedState';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -28,7 +29,11 @@ function useDebounced<T>(v: T, d = 350): T {
 const STATUS_OPTS = ['ALL', 'ACTIVE', 'INACTIVE', 'SUSPENDED'] as const;
 
 export default function TeacherList() {
+  // Backend /teachers POST/PUT/DELETE is ADMIN/SUPER_ADMIN only. Teachers
+  // can list/view fellow teachers but can't add/edit/delete — hide writes.
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canManageTeachers = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
   const [data, setData] = useState<Page<TeacherResponse> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -151,15 +156,17 @@ export default function TeacherList() {
           >
             Export
           </Button>
-          <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/teachers/add')}
-            sx={{
-              textTransform: 'none',
-              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-              boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
-              '&:hover': { background: 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)' },
-            }}>
-            Add teacher
-          </Button>
+          {canManageTeachers && (
+            <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/teachers/add')}
+              sx={{
+                textTransform: 'none',
+                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
+                '&:hover': { background: 'linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%)' },
+              }}>
+              Add teacher
+            </Button>
+          )}
         </Stack>
       </Box>
 
@@ -242,13 +249,13 @@ export default function TeacherList() {
                     icon={UsersIcon}
                     title="No teachers found"
                     description="Onboard your first teacher to start scheduling classes."
-                    action={
-                      <Button startIcon={<Add />} variant="contained"
-                        onClick={() => navigate('/dashboard/teachers/add')}
-                        sx={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
-                        Add teacher
-                      </Button>
-                    }
+                    action={canManageTeachers
+                      ? <Button startIcon={<Add />} variant="contained"
+                          onClick={() => navigate('/dashboard/teachers/add')}
+                          sx={{ background: 'linear-gradient(135deg, #7c3aed, #ec4899)' }}>
+                          Add teacher
+                        </Button>
+                      : undefined}
                   />
                 </TableCell></TableRow>
               ) : (
@@ -310,12 +317,16 @@ export default function TeacherList() {
         <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/teachers/${activeRow.id}`); setMenuAnchor(null); }}>
           <Visibility fontSize="small" sx={{ mr: 1 }} /> View
         </MenuItem>
-        <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/teachers/${activeRow.id}/edit`); setMenuAnchor(null); }}>
-          <Edit fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-        <MenuItem sx={{ color: 'error.main' }} onClick={() => activeRow && handleDelete(activeRow)}>
-          <Delete fontSize="small" sx={{ mr: 1 }} /> Delete
-        </MenuItem>
+        {canManageTeachers && (
+          <MenuItem onClick={() => { if (activeRow) navigate(`/dashboard/teachers/${activeRow.id}/edit`); setMenuAnchor(null); }}>
+            <Edit fontSize="small" sx={{ mr: 1 }} /> Edit
+          </MenuItem>
+        )}
+        {canManageTeachers && (
+          <MenuItem sx={{ color: 'error.main' }} onClick={() => activeRow && handleDelete(activeRow)}>
+            <Delete fontSize="small" sx={{ mr: 1 }} /> Delete
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

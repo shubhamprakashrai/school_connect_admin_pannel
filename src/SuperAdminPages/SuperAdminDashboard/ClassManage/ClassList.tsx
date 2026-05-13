@@ -12,6 +12,7 @@ import { Add, Class as ClassIcon, Delete, Edit, Search, Visibility } from '@mui/
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import schoolClassService from '../../../services/schoolClass.service';
+import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../../components/ui/LoadingSkeleton';
@@ -26,6 +27,10 @@ function useDebounced<T>(v: T, d = 350): T {
 
 export default function ClassList() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  // Backend /classes write paths are ADMIN/SUPER_ADMIN only — teachers may
+  // browse but not create/edit/delete.
+  const canManageClasses = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
   const [data, setData] = useState<Page<SchoolClassResponse> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,14 +84,16 @@ export default function ClassList() {
           <Typography variant="h5" sx={{ fontWeight: 700 }}>Classes</Typography>
           <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
         </Box>
-        <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/classes/add')}
-          sx={{
-            textTransform: 'none',
-            background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
-            boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
-          }}>
-          Add class
-        </Button>
+        {canManageClasses && (
+          <Button startIcon={<Add />} variant="contained" onClick={() => navigate('/dashboard/classes/add')}
+            sx={{
+              textTransform: 'none',
+              background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+              boxShadow: '0 8px 24px -8px rgba(37,99,235,0.4)',
+            }}>
+            Add class
+          </Button>
+        )}
       </Box>
 
       <TextField fullWidth size="small" placeholder="Search by name or code…"
@@ -103,7 +110,7 @@ export default function ClassList() {
           icon={ClassIcon as any}
           title="No classes found"
           description={search ? `No classes match "${search}"` : 'Create your first class to start enrolling students.'}
-          action={!search ? (
+          action={!search && canManageClasses ? (
             <Button startIcon={<Add />} variant="contained"
               onClick={() => navigate('/dashboard/classes/add')}>Create first class</Button>
           ) : undefined}
@@ -124,8 +131,12 @@ export default function ClassList() {
                     </Box>
                     <Stack direction="row" spacing={0}>
                       <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/dashboard/classes/${c.id}`)}><Visibility fontSize="small" /></IconButton></Tooltip>
-                      <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/dashboard/classes/${c.id}/edit`)}><Edit fontSize="small" /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDelete(c)}><Delete fontSize="small" /></IconButton></Tooltip>
+                      {canManageClasses && (
+                        <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/dashboard/classes/${c.id}/edit`)}><Edit fontSize="small" /></IconButton></Tooltip>
+                      )}
+                      {canManageClasses && (
+                        <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDelete(c)}><Delete fontSize="small" /></IconButton></Tooltip>
+                      )}
                     </Stack>
                   </Stack>
                   {c.description && (
