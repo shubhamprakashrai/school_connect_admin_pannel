@@ -252,15 +252,26 @@ export const STUDENT_ATTENDANCE_ENDPOINTS = {
     `/student/attendance/student/${studentId}/summary`,
 } as const;
 
-/** /calendar-events/* — CalendarEventController */
+/**
+ * /calendar-events/* — CalendarEventController (refactored May 2026)
+ *
+ * The old `/by-date`, `/by-range`, `/by-academic-year/*` and `/is-working-day`
+ * endpoints are gone. All reads go through the paginated `/search` endpoint,
+ * which is audience-aware (PARENT/STUDENT roles see only events targeted to
+ * them). Writes also got new shapes: events now carry `applicableSections`
+ * (UUID[]) and `audienceType` (`ADMIN|SUPER_ADMIN|TEACHERS|STUDENTS|PARENTS|ALL`).
+ */
 export const CALENDAR_EVENT_ENDPOINTS = {
   ROOT: '/calendar-events',
   byId: (id: string | number) => `/calendar-events/${id}`,
-  BY_DATE: '/calendar-events/by-date',
-  BY_RANGE: '/calendar-events/by-range',
-  byAcademicYear: (academicYearId: string | number) =>
-    `/calendar-events/by-academic-year/${academicYearId}`,
-  IS_WORKING_DAY: '/calendar-events/is-working-day',
+  SEARCH: '/calendar-events/search',
+  /** Create an academic-calendar event (audience-targeted) */
+  ACADEMIC: '/calendar-events/academic',
+  /** Delete an academic-calendar event */
+  deleteAcademic: (id: string | number) => `/calendar-events/academic/${id}`,
+  /** PUT — update sections + audience for an existing event */
+  updateSectionsAudience: (id: string | number) =>
+    `/calendar-events/${id}/sections-audience`,
 } as const;
 
 /** /config/* — MobileConfigController */
@@ -304,6 +315,38 @@ export const LEAVE_ENDPOINTS = {
   PENDING: '/leave/requests/pending',
 } as const;
 
+/** /time-slots/* — TimeSlotController. Bell schedule (periods + breaks). */
+export const TIME_SLOT_ENDPOINTS = {
+  ROOT: '/time-slots',
+  /** Admin-only — includes inactive slots. */
+  ALL: '/time-slots/all',
+  byId: (id: string) => `/time-slots/${id}`,
+  toggleActive: (id: string) => `/time-slots/${id}/toggle-active`,
+} as const;
+
+/** /timetable/* — TimetableController. Per-section weekly grid. */
+export const TIMETABLE_ENDPOINTS = {
+  upsertEntry: (sectionId: string) => `/timetable/section/${sectionId}/entry`,
+  deleteEntry: (sectionId: string) => `/timetable/section/${sectionId}/entry`,
+  bySection: (sectionId: string) => `/timetable/section/${sectionId}`,
+  byTeacher: (teacherId: string) => `/timetable/teacher/${teacherId}`,
+} as const;
+
+/** /enrollments/* — StudentEnrollmentController. Year-over-year enrolment + promotion. */
+export const ENROLLMENT_ENDPOINTS = {
+  ROOT: '/enrollments',
+  history: (studentId: string) => `/enrollments/student/${studentId}/history`,
+  bySession: (academicYearId: string) => `/enrollments/session/${academicYearId}`,
+  PROMOTE: '/enrollments/promote',
+} as const;
+
+/** /sections/* (extras) — SectionDetailController */
+export const SECTION_DETAIL_ENDPOINTS = {
+  detail: (sectionId: string) => `/sections/${sectionId}/detail`,
+  createConfig: (sectionId: string) => `/sections/${sectionId}/timetable-config`,
+  updateConfig: (sectionId: string) => `/sections/${sectionId}/timetable-config`,
+} as const;
+
 // ---------------------------------------------------------------------------
 // Convenience export — single object containing every group.
 // Use this when iterating, debugging, or wiring a generic API explorer.
@@ -336,6 +379,10 @@ export const API_ENDPOINTS = {
   NOTIFICATION: NOTIFICATION_ENDPOINTS,
   FEE: FEE_ENDPOINTS,
   LEAVE: LEAVE_ENDPOINTS,
+  TIME_SLOT: TIME_SLOT_ENDPOINTS,
+  TIMETABLE: TIMETABLE_ENDPOINTS,
+  ENROLLMENT: ENROLLMENT_ENDPOINTS,
+  SECTION_DETAIL: SECTION_DETAIL_ENDPOINTS,
 } as const;
 
 export default {

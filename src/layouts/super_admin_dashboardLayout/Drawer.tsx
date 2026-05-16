@@ -13,7 +13,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
   Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
-  Building2, ClipboardCheck, Network, BookOpenText, Database,
+  Building2, ClipboardCheck, Network, BookOpenText, Database, Clock, Grid3X3,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../contexts/I18nContext';
@@ -66,6 +66,8 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     exams:               canManage,
     tenant:              isAdmin || isSuper,
     master_data:         isAdmin || isSuper,
+    time_slots:          isAdmin || isSuper,
+    timetable:           canManage,
     settings:            isSuper,
   };
 
@@ -97,6 +99,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { key: 'class_teachers',  label: t('nav.classTeachers'),      path: '/dashboard/class-teachers',       icon: <Users        className="w-[18px] h-[18px]" /> },
         { key: 'assignments',     label: t('nav.teacherAssignments'), path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
         { key: 'exams',           label: t('nav.exams'),              path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
+        { key: 'timetable',       label: 'Timetable',                 path: '/dashboard/timetable',            icon: <Grid3X3      className="w-[18px] h-[18px]" /> },
       ],
     },
     {
@@ -106,6 +109,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { key: 'schools',     label: t('nav.schools'),         path: '/dashboard/schools',     icon: <School    className="w-[18px] h-[18px]" /> },
         { key: 'tenant',      label: t('nav.schoolSettings'),  path: '/dashboard/tenant',      icon: <Building2 className="w-[18px] h-[18px]" /> },
         { key: 'master_data', label: t('nav.masterData'),      path: '/dashboard/master-data', icon: <Database  className="w-[18px] h-[18px]" /> },
+        { key: 'time_slots',  label: 'Time slots',             path: '/dashboard/time-slots',  icon: <Clock     className="w-[18px] h-[18px]" /> },
         { key: 'settings',    label: t('nav.settings'),        path: '/dashboard/settings',    icon: <Settings  className="w-[18px] h-[18px]" /> },
       ],
     },

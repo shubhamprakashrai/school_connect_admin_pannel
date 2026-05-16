@@ -77,6 +77,8 @@ const BulkSubjectsPage   = lazy(() => import('./SuperAdminPages/SuperAdminDashbo
 const TenantSettingsPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Tenant/TenantSettingsPage'));
 const AdminProfilePage   = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Profile/AdminProfilePage'));
 const MasterDataPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/MasterData/MasterDataPage'));
+const TimeSlotsPage      = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/TimeSlots/TimeSlotsPage'));
+const TimetablePage      = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Timetable/TimetablePage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -317,6 +319,8 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                   <Route path="results" element={<ExamResultsPage />} />
                 </Route>
                 <Route path="master-data" element={<MasterDataPage />} />
+                <Route path="time-slots" element={<TimeSlotsPage />} />
+                <Route path="timetable" element={<TimetablePage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
               </Routes>

@@ -116,10 +116,9 @@ export default function CalendarPage() {
       eventType: e.eventType,
       title: e.title,
       description: e.description,
-      isWorkingDay: e.isWorkingDay,
       academicYearId: e.academicYearId,
-      halfDay: e.halfDay,
-      holidayType: e.holidayType,
+      applicableSections: e.applicableSections,
+      audienceType: e.audienceType,
     });
     setOpenDialog(true);
   };
@@ -290,15 +289,15 @@ export default function CalendarPage() {
             </TextField>
             <TextField label={t('masterData.description')} multiline rows={2} value={draft.description || ''}
               onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-            {(draft.eventType === 'HOLIDAY' || draft.eventType === 'HALF_DAY') && (
-              <TextField select label={t('calendar.holidayType')} value={draft.holidayType || ''}
-                onChange={(e) => setDraft({ ...draft, holidayType: e.target.value as any })}>
-                <MenuItem value="">—</MenuItem>
-                {['NATIONAL', 'REGIONAL', 'RELIGIOUS', 'SCHOOL_EVENT', 'TEACHER_TRAINING'].map((t) => (
-                  <MenuItem key={t} value={t}>{t.replace(/_/g, ' ')}</MenuItem>
-                ))}
-              </TextField>
-            )}
+            <TextField select label="Audience" value={draft.audienceType || 'ALL'}
+              helperText="Who can see this event"
+              onChange={(e) => setDraft({ ...draft, audienceType: e.target.value as CalendarEventRequest['audienceType'] })}>
+              <MenuItem value="ALL">Everyone</MenuItem>
+              <MenuItem value="STUDENTS">Students only</MenuItem>
+              <MenuItem value="PARENTS">Parents only</MenuItem>
+              <MenuItem value="TEACHERS">Teachers only</MenuItem>
+              <MenuItem value="ADMIN">Admins only</MenuItem>
+            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', px: 3 }}>
