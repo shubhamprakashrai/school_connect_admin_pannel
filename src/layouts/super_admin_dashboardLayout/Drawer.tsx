@@ -14,7 +14,7 @@ import {
   LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
   Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
   Building2, ClipboardCheck, Network, BookOpenText, Database, Clock, Grid3X3,
-  ArrowUpRight, ClipboardList, Wallet, CalendarOff, Inbox, ShieldAlert,
+  ArrowUpRight, ClipboardList, Wallet, CalendarOff, Inbox, ShieldAlert, BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../contexts/I18nContext';
@@ -75,6 +75,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     leave:               isAdmin || isSuper,
     inbox:               true,
     safety:              isAdmin || isSuper,
+    reports:             canManage,
     settings:            isSuper,
   };
 
@@ -114,6 +115,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     {
       heading: t('nav.sectionAdmin'),
       items: [
+        { key: 'reports',     label: 'Reports',                path: '/dashboard/reports',     icon: <BarChart3   className="w-[18px] h-[18px]" /> },
         { key: 'notices',     label: t('nav.notices'),         path: '/dashboard/notices',     icon: <Bell      className="w-[18px] h-[18px]" /> },
         { key: 'inbox',       label: 'Notifications inbox',    path: '/dashboard/notifications-inbox', icon: <Inbox className="w-[18px] h-[18px]" /> },
         { key: 'fees',        label: 'Fees',                   path: '/dashboard/fees',        icon: <Wallet      className="w-[18px] h-[18px]" /> },

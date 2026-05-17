@@ -17,6 +17,7 @@ import {
   TableRow, TextField, Tooltip, Typography,
 } from '@mui/material';
 import { Add, Delete, Edit, Visibility } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 import { ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import assignmentService from '../../../services/assignment.service';
@@ -257,7 +258,11 @@ export default function AssignmentsPage() {
                       ) : '—'}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="View submissions"><IconButton size="small"><Visibility fontSize="small" /></IconButton></Tooltip>
+                      <Tooltip title="View submissions">
+                        <IconButton size="small" component={RouterLink} to={`/dashboard/assignments/${a.id}`}>
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       {canManage && (
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(a)}>
                           <Edit fontSize="small" /></IconButton></Tooltip>

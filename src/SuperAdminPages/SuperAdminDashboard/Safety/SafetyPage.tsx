@@ -35,24 +35,92 @@ const INCIDENT_TYPES: IncidentType[] = ['BULLYING', 'INJURY', 'BEHAVIORAL', 'MED
 export default function SafetyPage() {
   const { hasRole } = useAuth();
   const canManage = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
-  const [tab, setTab] = useState<'alerts' | 'incidents'>('alerts');
+  const [tab, setTab] = useState<'alerts' | 'incidents' | 'counseling'>('alerts');
 
   return (
     <Box>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>Safety</Typography>
         <Typography variant="body2" color="text.secondary">
-          Broadcast campus alerts and log incidents.
+          Broadcast campus alerts, log incidents, and book counseling sessions.
         </Typography>
       </Box>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Alerts" value="alerts" />
         <Tab label="Report incident" value="incidents" />
+        <Tab label="Counseling" value="counseling" />
       </Tabs>
 
-      {tab === 'alerts'    && <AlertsPanel canManage={canManage} />}
-      {tab === 'incidents' && <IncidentsPanel />}
+      {tab === 'alerts'     && <AlertsPanel canManage={canManage} />}
+      {tab === 'incidents'  && <IncidentsPanel />}
+      {tab === 'counseling' && <CounselingPanel />}
     </Box>
+  );
+}
+
+// ============================================================================
+// Tab 3: Counseling referral
+// ============================================================================
+function CounselingPanel() {
+  const [draft, setDraft] = useState({
+    studentId: '',
+    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    topic: '',
+    notes: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!draft.studentId.trim() || !draft.topic.trim()) {
+      toast.error('Student id and topic required'); return;
+    }
+    setSaving(true);
+    try {
+      await safetyService.bookCounseling(draft);
+      toast.success('Counseling session booked');
+      setDraft({
+        studentId: '',
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+        topic: '', notes: '',
+      });
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, maxWidth: 720 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+        <ShieldAlert className="w-5 h-5" />
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Book counseling session</Typography>
+      </Stack>
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Counselor will be notified and the student's parents will see the session in their portal.
+      </Alert>
+      <Stack spacing={2}>
+        <TextField required label="Student ID" value={draft.studentId}
+          onChange={(e) => setDraft({ ...draft, studentId: e.target.value })}
+          placeholder="UUID — find on the student detail page" />
+        <Stack direction="row" spacing={2}>
+          <TextField fullWidth type="datetime-local" required label="Scheduled at"
+            InputLabelProps={{ shrink: true }} value={draft.scheduledAt}
+            onChange={(e) => setDraft({ ...draft, scheduledAt: e.target.value })} />
+          <TextField fullWidth required label="Topic" value={draft.topic}
+            onChange={(e) => setDraft({ ...draft, topic: e.target.value })}
+            placeholder="Academic stress · Family · Behavioural" />
+        </Stack>
+        <TextField multiline rows={3} label="Notes (private)"
+          value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} />
+        <Box sx={{ textAlign: 'right' }}>
+          <Button variant="contained" disabled={saving} onClick={submit}
+            sx={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+            {saving ? 'Booking…' : 'Book session'}
+          </Button>
+        </Box>
+      </Stack>
+    </Paper>
   );
 }
 

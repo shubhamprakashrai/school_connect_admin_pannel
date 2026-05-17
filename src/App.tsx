@@ -86,6 +86,10 @@ const FeesPage           = lazy(() => import('./SuperAdminPages/SuperAdminDashbo
 const LeavePage          = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Leave/LeavePage'));
 const NotificationsInboxPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/NotificationsInbox/NotificationsInboxPage'));
 const SafetyPage         = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Safety/SafetyPage'));
+const ReportsPage        = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Reports/ReportsPage'));
+const AssignmentDetailPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Assignments/AssignmentDetailPage'));
+const FeeReceiptPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Fees/FeeReceiptPage'));
+const PendingFeesPage    = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Fees/PendingFeesPage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -331,10 +335,14 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                 <Route path="promotions" element={<PromotionsPage />} />
                 <Route path="sections/:sectionId" element={<SectionDetailPage />} />
                 <Route path="assignments" element={<AssignmentsPage />} />
+                <Route path="assignments/:assignmentId" element={<AssignmentDetailPage />} />
                 <Route path="fees" element={<FeesPage />} />
+                <Route path="fees/pending" element={<PendingFeesPage />} />
+                <Route path="fees/receipt/:paymentId" element={<FeeReceiptPage />} />
                 <Route path="leave" element={<LeavePage />} />
                 <Route path="notifications-inbox" element={<NotificationsInboxPage />} />
                 <Route path="safety" element={<SafetyPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
               </Routes>
