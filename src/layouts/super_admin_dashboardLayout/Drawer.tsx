@@ -14,6 +14,7 @@ import {
   LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
   Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
   Building2, ClipboardCheck, Network, BookOpenText, Database, Clock, Grid3X3,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../contexts/I18nContext';
@@ -68,6 +69,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     master_data:         isAdmin || isSuper,
     time_slots:          isAdmin || isSuper,
     timetable:           canManage,
+    promotions:          isAdmin || isSuper,
     settings:            isSuper,
   };
 
@@ -100,6 +102,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { key: 'assignments',     label: t('nav.teacherAssignments'), path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
         { key: 'exams',           label: t('nav.exams'),              path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
         { key: 'timetable',       label: 'Timetable',                 path: '/dashboard/timetable',            icon: <Grid3X3      className="w-[18px] h-[18px]" /> },
+        { key: 'promotions',      label: 'Year-end promotions',       path: '/dashboard/promotions',           icon: <ArrowUpRight className="w-[18px] h-[18px]" /> },
       ],
     },
     {

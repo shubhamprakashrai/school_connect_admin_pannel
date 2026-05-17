@@ -79,6 +79,8 @@ const AdminProfilePage   = lazy(() => import('./SuperAdminPages/SuperAdminDashbo
 const MasterDataPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/MasterData/MasterDataPage'));
 const TimeSlotsPage      = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/TimeSlots/TimeSlotsPage'));
 const TimetablePage      = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Timetable/TimetablePage'));
+const PromotionsPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Promotions/PromotionsPage'));
+const SectionDetailPage  = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/SectionDetail/SectionDetailPage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -321,6 +323,8 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                 <Route path="master-data" element={<MasterDataPage />} />
                 <Route path="time-slots" element={<TimeSlotsPage />} />
                 <Route path="timetable" element={<TimetablePage />} />
+                <Route path="promotions" element={<PromotionsPage />} />
+                <Route path="sections/:sectionId" element={<SectionDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
               </Routes>

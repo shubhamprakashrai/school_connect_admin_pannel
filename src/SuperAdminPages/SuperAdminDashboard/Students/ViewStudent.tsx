@@ -12,9 +12,11 @@ import {
 import { toast } from 'react-toastify';
 import studentService from '../../../services/student.service';
 import { studentAttendanceService } from '../../../services/attendance.service';
+import enrollmentService from '../../../services/enrollment.service';
 import AdminResetPasswordButton from '../../../components/ui/AdminResetPasswordButton';
 import type { StudentResponse } from '../../../types/student';
 import type { AttendanceSummaryResponse } from '../../../types/attendance';
+import type { StudentEnrollmentResponse } from '../../../types/enrollment';
 
 type Period = 'week' | 'month' | 'quarter';
 const PIE_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#06b6d4', '#a855f7'];
@@ -35,6 +37,8 @@ export default function ViewStudent() {
   const [period, setPeriod] = useState<Period>('month');
   const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [history, setHistory] = useState<StudentEnrollmentResponse[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -42,6 +46,14 @@ export default function ViewStudent() {
       .then(setStudent)
       .catch((err) => toast.error(err.message || 'Failed to load student'))
       .finally(() => setLoading(false));
+
+    // Enrolment history — separate call; tolerate failure silently because
+    // the rest of the page still works without it.
+    setHistoryLoading(true);
+    enrollmentService.history(id)
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -160,6 +172,55 @@ export default function ViewStudent() {
               Admitted on{' '}
               {student.admissionDate ? new Date(student.admissionDate).toLocaleDateString() : '—'}
             </Typography>
+          </Paper>
+        </Grid>
+
+        {/* Enrolment history — one row per academic year. */}
+        <Grid item xs={12}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
+              Enrolment history
+            </Typography>
+            {historyLoading ? (
+              <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={20} /></Box>
+            ) : history.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No prior enrolment rows recorded.
+              </Typography>
+            ) : (
+              <Stack spacing={1}>
+                {history
+                  .slice()
+                  .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                  .map((h) => (
+                    <Box key={h.id} sx={{
+                      display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5,
+                      p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5,
+                    }}>
+                      <Box sx={{ minWidth: 140 }}>
+                        <Typography variant="subtitle2">{h.academicYearName || '—'}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {h.createdAt ? new Date(h.createdAt).toLocaleDateString() : ''}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 200 }}>
+                        <Typography variant="body2">
+                          <strong>{h.className || '—'}</strong>{h.sectionName ? ` · ${h.sectionName}` : ''}
+                          {h.rollNumber ? ` · Roll ${h.rollNumber}` : ''}
+                        </Typography>
+                        {h.promotedToClassName && (
+                          <Typography variant="caption" color="text.secondary">
+                            Promoted to {h.promotedToClassName}
+                            {h.promotedAt ? ` on ${new Date(h.promotedAt).toLocaleDateString()}` : ''}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Chip size="small" label={h.status || 'ACTIVE'} variant="outlined"
+                        color={h.status === 'ACTIVE' ? 'success' : h.status === 'PROMOTED' ? 'info' : 'default'} />
+                    </Box>
+                  ))}
+              </Stack>
+            )}
           </Paper>
         </Grid>
 
