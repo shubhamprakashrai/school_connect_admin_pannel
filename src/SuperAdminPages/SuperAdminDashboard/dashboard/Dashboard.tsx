@@ -15,16 +15,14 @@ import {
   ArrowUpRight, GraduationCap, Users, Calendar, ChevronRight,
   Sparkles, TrendingUp, UserPlus, FileSpreadsheet, ClipboardCheck, BookMarked,
 } from 'lucide-react';
-import studentService from '../../../services/student.service';
-import teacherService from '../../../services/teacher.service';
-import schoolClassService from '../../../services/schoolClass.service';
+import tenantService from '../../../services/tenant.service';
 import calendarEventService from '../../../services/calendarEvent.service';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useT } from '../../../contexts/I18nContext';
 import { useAcademicYear } from '../../../contexts/AcademicYearContext';
 import UsagePanel from '../../../components/ui/UsagePanel';
 import OperationsPanel from '../../../components/ui/OperationsPanel';
-import type { StudentStatistics } from '../../../types/student';
+import type { TenantStatistics } from '../../../types/tenant';
 import type { CalendarEventResponse } from '../../../types/calendarEvent';
 
 interface StatCardProps {
@@ -92,32 +90,35 @@ export function Dashboard() {
   const { active: activeYear } = useAcademicYear();
   const navigate = useNavigate();
 
-  const [stats, setStats] = useState<StudentStatistics | null>(null);
-  const [teacherCount, setTeacherCount] = useState<number>(0);
-  const [classCount, setClassCount] = useState<number>(0);
+  const [stats, setStats] = useState<TenantStatistics | null>(null);
   const [upcoming, setUpcoming] = useState<CalendarEventResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Mobile's school-admin dashboard fetches /tenants/statistics for the
+  // primary stat cards; admin panel used to call /students/statistics
+  // (currently 500 on production). Tenant stats returns everything we
+  // need — totalStudents, totalTeachers, totalClasses, usersByRole,
+  // studentsByClass — in a single working call.
   useEffect(() => {
     setLoading(true);
     const today = new Date();
     const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
     Promise.allSettled([
-      studentService.statistics(),
-      teacherService.list({ page: 0, size: 1 }),
-      schoolClassService.list(),
-      // Local YYYY-MM-DD — toISOString() converts to UTC and shifts dates
-      // by ±1 day for non-UTC timezones (IST users hit this near midnight).
+      tenantService.statistics(),
+      // Local YYYY-MM-DD — toISOString() shifts dates ±1 day in non-UTC zones.
       calendarEventService.byRange(ymd(today), ymd(in30)),
     ])
-      .then(([sStats, tList, cList, events]) => {
+      .then(([sStats, events]) => {
         if (sStats.status === 'fulfilled') setStats(sStats.value);
-        if (tList.status === 'fulfilled') setTeacherCount(tList.value.totalElements ?? 0);
-        if (cList.status === 'fulfilled') setClassCount(cList.value.length ?? 0);
         if (events.status === 'fulfilled') setUpcoming(events.value || []);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Derived counters straight off the tenant stats payload — saves the
+  // 3 extra calls (teachers + classes + students/statistics) we used to make.
+  const teacherCount = stats?.totalTeachers ?? 0;
+  const classCount   = stats?.totalClasses ?? 0;
 
   const trend = useMemo(buildTrend, []);
 
@@ -126,12 +127,11 @@ export function Dashboard() {
     return Object.entries(stats.studentsByClass).map(([name, count]) => ({ name, count }));
   }, [stats]);
 
-  const genderPie = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { name: 'Male', value: stats.maleStudents || 0 },
-      { name: 'Female', value: stats.femaleStudents || 0 },
-    ].filter((s) => s.value > 0);
+  // Tenant stats return usersByRole rather than gender breakdown — repurpose
+  // the second chart as a "users by role" donut, matching what mobile shows.
+  const usersByRoleData = useMemo(() => {
+    if (!stats?.usersByRole) return [];
+    return Object.entries(stats.usersByRole).map(([name, value]) => ({ name, value }));
   }, [stats]);
 
   const greeting = useMemo(() => {
@@ -193,7 +193,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label={t('dashboard.activeStudents')}
-          value={loading ? '…' : (stats?.activeStudents ?? stats?.totalStudents ?? 0)}
+          value={loading ? '…' : (stats?.totalStudents ?? 0)}
           delta="+4.2% mo/mo"
           icon={GraduationCap}
           gradient="from-brand-500 to-accent-cyan"
@@ -257,28 +257,28 @@ export function Dashboard() {
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 shadow-card-soft">
-          <div className="text-sm text-ink-500">Gender split</div>
-          <div className="text-lg font-semibold text-ink-900">{stats?.totalStudents || 0} students</div>
+          <div className="text-sm text-ink-500">Users by role</div>
+          <div className="text-lg font-semibold text-ink-900">{stats?.activeUsers || 0} active users</div>
           <div className="h-56 mt-4">
-            {genderPie.length === 0 ? (
+            {usersByRoleData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-ink-300 text-sm">
                 No data yet
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={genderPie} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>
-                    {genderPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                  <Pie data={usersByRoleData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={72} paddingAngle={3}>
+                    {usersByRoleData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <RTooltip />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
-          <div className="flex justify-around text-xs text-ink-500">
-            {genderPie.map((g, i) => (
+          <div className="flex justify-around text-xs text-ink-500 flex-wrap gap-1">
+            {usersByRoleData.map((g, i) => (
               <div key={g.name} className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
                 {g.name} · {g.value}
               </div>
             ))}
