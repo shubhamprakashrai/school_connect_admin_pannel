@@ -81,6 +81,11 @@ const TimeSlotsPage      = lazy(() => import('./SuperAdminPages/SuperAdminDashbo
 const TimetablePage      = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Timetable/TimetablePage'));
 const PromotionsPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Promotions/PromotionsPage'));
 const SectionDetailPage  = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/SectionDetail/SectionDetailPage'));
+const AssignmentsPage    = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Assignments/AssignmentsPage'));
+const FeesPage           = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Fees/FeesPage'));
+const LeavePage          = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Leave/LeavePage'));
+const NotificationsInboxPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/NotificationsInbox/NotificationsInboxPage'));
+const SafetyPage         = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Safety/SafetyPage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -325,6 +330,11 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                 <Route path="timetable" element={<TimetablePage />} />
                 <Route path="promotions" element={<PromotionsPage />} />
                 <Route path="sections/:sectionId" element={<SectionDetailPage />} />
+                <Route path="assignments" element={<AssignmentsPage />} />
+                <Route path="fees" element={<FeesPage />} />
+                <Route path="leave" element={<LeavePage />} />
+                <Route path="notifications-inbox" element={<NotificationsInboxPage />} />
+                <Route path="safety" element={<SafetyPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="change-password" element={<ChangePasswordPage />} />
               </Routes>

@@ -14,7 +14,7 @@ import {
   LayoutDashboard, School, Users, Settings, LogOut, GraduationCap, BookOpen,
   Bell, CalendarCheck, BookOpenCheck, CalendarRange, Heart, Shield, UserCog,
   Building2, ClipboardCheck, Network, BookOpenText, Database, Clock, Grid3X3,
-  ArrowUpRight,
+  ArrowUpRight, ClipboardList, Wallet, CalendarOff, Inbox, ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../contexts/I18nContext';
@@ -70,6 +70,11 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
     time_slots:          isAdmin || isSuper,
     timetable:           canManage,
     promotions:          isAdmin || isSuper,
+    assignments_hw:      canManage,
+    fees:                isAdmin || isSuper,
+    leave:               isAdmin || isSuper,
+    inbox:               true,
+    safety:              isAdmin || isSuper,
     settings:            isSuper,
   };
 
@@ -101,6 +106,7 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
         { key: 'class_teachers',  label: t('nav.classTeachers'),      path: '/dashboard/class-teachers',       icon: <Users        className="w-[18px] h-[18px]" /> },
         { key: 'assignments',     label: t('nav.teacherAssignments'), path: '/dashboard/teacher-assignments', icon: <Network      className="w-[18px] h-[18px]" /> },
         { key: 'exams',           label: t('nav.exams'),              path: '/dashboard/exams',                icon: <BookOpenCheck className="w-[18px] h-[18px]" /> },
+        { key: 'assignments_hw',  label: 'Assignments',               path: '/dashboard/assignments',          icon: <ClipboardList className="w-[18px] h-[18px]" /> },
         { key: 'timetable',       label: 'Timetable',                 path: '/dashboard/timetable',            icon: <Grid3X3      className="w-[18px] h-[18px]" /> },
         { key: 'promotions',      label: 'Year-end promotions',       path: '/dashboard/promotions',           icon: <ArrowUpRight className="w-[18px] h-[18px]" /> },
       ],
@@ -109,6 +115,10 @@ const Drawer: React.FC<DrawerProps> = ({ onClose, onLogout }) => {
       heading: t('nav.sectionAdmin'),
       items: [
         { key: 'notices',     label: t('nav.notices'),         path: '/dashboard/notices',     icon: <Bell      className="w-[18px] h-[18px]" /> },
+        { key: 'inbox',       label: 'Notifications inbox',    path: '/dashboard/notifications-inbox', icon: <Inbox className="w-[18px] h-[18px]" /> },
+        { key: 'fees',        label: 'Fees',                   path: '/dashboard/fees',        icon: <Wallet      className="w-[18px] h-[18px]" /> },
+        { key: 'leave',       label: 'Leave',                  path: '/dashboard/leave',       icon: <CalendarOff className="w-[18px] h-[18px]" /> },
+        { key: 'safety',      label: 'Safety',                 path: '/dashboard/safety',      icon: <ShieldAlert className="w-[18px] h-[18px]" /> },
         { key: 'schools',     label: t('nav.schools'),         path: '/dashboard/schools',     icon: <School    className="w-[18px] h-[18px]" /> },
         { key: 'tenant',      label: t('nav.schoolSettings'),  path: '/dashboard/tenant',      icon: <Building2 className="w-[18px] h-[18px]" /> },
         { key: 'master_data', label: t('nav.masterData'),      path: '/dashboard/master-data', icon: <Database  className="w-[18px] h-[18px]" /> },
