@@ -131,7 +131,12 @@ export default function CalendarPage() {
         await calendarEventService.update(editing.id, draft);
         toast.success('Event updated');
       } else {
-        await calendarEventService.create(draft);
+        // Use the /academic endpoint on create: backend's plain /calendar-events
+        // currently drops `audienceType` (returns null on persist), while
+        // /calendar-events/academic correctly stores the audience flag —
+        // which the search endpoint then uses to filter for PARENT/STUDENT
+        // viewers. Routing every create here keeps the audience picker honest.
+        await calendarEventService.createAcademic(draft);
         toast.success('Event added');
       }
       setOpenDialog(false);
