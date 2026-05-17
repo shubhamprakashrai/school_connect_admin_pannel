@@ -22,6 +22,7 @@ import { useT } from '../../../contexts/I18nContext';
 import { useAcademicYear } from '../../../contexts/AcademicYearContext';
 import UsagePanel from '../../../components/ui/UsagePanel';
 import OperationsPanel from '../../../components/ui/OperationsPanel';
+import QuickActionsGrid from '../../../components/ui/QuickActionsGrid';
 import type { TenantStatistics } from '../../../types/tenant';
 import type { CalendarEventResponse } from '../../../types/calendarEvent';
 
@@ -182,6 +183,9 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Quick action tiles — mirrors mobile's _quickActions grid. */}
+      <QuickActionsGrid />
 
       {/* Plan usage */}
       <UsagePanel />
