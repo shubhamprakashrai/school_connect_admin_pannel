@@ -78,6 +78,8 @@ export default function SettingsPage() {
         <Chip size="small" label="Mobile config" color="primary" variant="outlined" />
       </Box>
 
+      <MyPreferencesPanel />
+
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>App version control</Typography>
         <Grid container spacing={2}>
@@ -166,5 +168,62 @@ function FlagAdder({ onAdd }: { onAdd: (key: string) => void }) {
         }} />
       <Button onClick={() => { if (v.trim()) { onAdd(v.trim()); setV(''); } }}>Add flag</Button>
     </Stack>
+  );
+}
+
+// ============================================================================
+// My preferences — per-user toggles persisted to localStorage. Mirrors
+// mobile's App Settings page (Push / Email notification toggles, etc.).
+// When backend ships a user-preferences endpoint, these will sync to it.
+// ============================================================================
+
+interface UserPrefs {
+  pushNotifications: boolean;
+  emailNotifications: boolean;
+  digestEmails: boolean;
+}
+
+const PREFS_KEY = 'sc_user_prefs';
+
+function loadPrefs(): UserPrefs {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (raw) return { pushNotifications: true, emailNotifications: true, digestEmails: false, ...JSON.parse(raw) };
+  } catch { /* corrupt — fall through to defaults */ }
+  return { pushNotifications: true, emailNotifications: true, digestEmails: false };
+}
+
+function MyPreferencesPanel() {
+  const [prefs, setPrefs] = useState<UserPrefs>(() => loadPrefs());
+
+  const set = <K extends keyof UserPrefs>(k: K, v: UserPrefs[K]) => {
+    const next = { ...prefs, [k]: v };
+    setPrefs(next);
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { /* quota? */ }
+    toast.success('Preference saved');
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>My preferences</Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        Personal notification settings — stored on this device. When the backend ships
+        user-preferences APIs, these will sync to your account.
+      </Typography>
+      <Stack spacing={1.5}>
+        <FormControlLabel control={
+          <Switch checked={prefs.pushNotifications}
+            onChange={(_, v) => set('pushNotifications', v)} />
+        } label="Push notifications" />
+        <FormControlLabel control={
+          <Switch checked={prefs.emailNotifications}
+            onChange={(_, v) => set('emailNotifications', v)} />
+        } label="Email notifications" />
+        <FormControlLabel control={
+          <Switch checked={prefs.digestEmails}
+            onChange={(_, v) => set('digestEmails', v)} />
+        } label="Weekly digest email" />
+      </Stack>
+    </Paper>
   );
 }

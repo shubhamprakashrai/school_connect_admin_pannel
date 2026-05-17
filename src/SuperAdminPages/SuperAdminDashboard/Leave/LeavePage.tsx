@@ -30,24 +30,211 @@ import type { LeaveRequestResponse, LeaveType } from '../../../types/leaveReal';
 export default function LeavePage() {
   const { hasRole } = useAuth();
   const canManage = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
-  const [tab, setTab] = useState<'pending' | 'types'>('pending');
+  const [tab, setTab] = useState<'pending' | 'apply' | 'my' | 'types'>('pending');
 
   return (
     <Box>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>Leave</Typography>
         <Typography variant="body2" color="text.secondary">
-          Review leave requests and manage leave-type catalog.
+          Review leave requests, apply for your own leave, manage leave types.
         </Typography>
       </Box>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
-        <Tab label="Pending approvals" value="pending" />
-        <Tab label="Leave types" value="types" />
+        {canManage && <Tab label="Pending approvals" value="pending" />}
+        <Tab label="Apply for leave" value="apply" />
+        <Tab label="My requests" value="my" />
+        {canManage && <Tab label="Leave types" value="types" />}
       </Tabs>
 
-      {tab === 'pending' && <PendingPanel canManage={canManage} />}
-      {tab === 'types'   && <TypesPanel canManage={canManage} />}
+      {tab === 'pending' && canManage && <PendingPanel canManage={canManage} />}
+      {tab === 'apply'                  && <ApplyPanel onSubmitted={() => setTab('my')} />}
+      {tab === 'my'                     && <MyHistoryPanel />}
+      {tab === 'types'   && canManage && <TypesPanel canManage={canManage} />}
     </Box>
+  );
+}
+
+// ============================================================================
+// Tab: Apply leave (self-service)
+// ============================================================================
+function ApplyPanel({ onSubmitted }: { onSubmitted: () => void }) {
+  const [types, setTypes] = useState<LeaveType[]>([]);
+  const [typesLoading, setTypesLoading] = useState(true);
+  const [draft, setDraft] = useState({
+    leaveTypeId: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date().toISOString().slice(0, 10),
+    reason: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    leaveRealService.activeTypes()
+      .then(setTypes).catch(() => setTypes([]))
+      .finally(() => setTypesLoading(false));
+  }, []);
+
+  const days = (() => {
+    if (!draft.startDate || !draft.endDate) return 0;
+    const s = new Date(draft.startDate);
+    const e = new Date(draft.endDate);
+    return Math.max(0, Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  })();
+
+  const submit = async () => {
+    if (!draft.leaveTypeId) { toast.error('Pick a leave type'); return; }
+    if (!draft.startDate || !draft.endDate) { toast.error('Date range required'); return; }
+    if (draft.endDate < draft.startDate) { toast.error('End date must be on or after start'); return; }
+    if (!draft.reason.trim()) { toast.error('Reason required'); return; }
+    setSaving(true);
+    try {
+      await leaveRealService.request(draft);
+      toast.success('Leave request submitted');
+      setDraft({ ...draft, reason: '' });
+      onSubmitted();
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Submit failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, maxWidth: 640 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Apply for leave</Typography>
+      <Stack spacing={2}>
+        <TextField select required label="Leave type"
+          value={draft.leaveTypeId} disabled={typesLoading}
+          onChange={(e) => setDraft({ ...draft, leaveTypeId: e.target.value })}
+          helperText={typesLoading ? 'Loading types…' : (types.length === 0 ? 'No leave types configured — ask admin' : undefined)}
+        >
+          <MenuItem value="">Select type</MenuItem>
+          {types.map((t) => (
+            <MenuItem key={t.id} value={t.id}>
+              {t.name}{t.maxDaysPerYear ? ` · max ${t.maxDaysPerYear}/yr` : ''}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Stack direction="row" spacing={2}>
+          <TextField fullWidth required type="date" label="From"
+            InputLabelProps={{ shrink: true }} value={draft.startDate}
+            onChange={(e) => setDraft({ ...draft, startDate: e.target.value })} />
+          <TextField fullWidth required type="date" label="To"
+            InputLabelProps={{ shrink: true }} value={draft.endDate}
+            inputProps={{ min: draft.startDate }}
+            onChange={(e) => setDraft({ ...draft, endDate: e.target.value })} />
+          <Box sx={{ alignSelf: 'center', whiteSpace: 'nowrap' }}>
+            <Chip color="primary" label={`${days} day${days === 1 ? '' : 's'}`} />
+          </Box>
+        </Stack>
+        <TextField required multiline rows={3} label="Reason"
+          value={draft.reason} onChange={(e) => setDraft({ ...draft, reason: e.target.value })} />
+        <Alert severity="info">
+          Once submitted, your manager / admin will receive the request under Pending approvals.
+        </Alert>
+        <Box sx={{ textAlign: 'right' }}>
+          <Button variant="contained" disabled={saving} onClick={submit}
+            sx={{ background: 'linear-gradient(135deg, #a855f7, #2563eb)' }}>
+            {saving ? 'Submitting…' : 'Submit request'}
+          </Button>
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
+
+// ============================================================================
+// Tab: My requests (own history)
+// ============================================================================
+function MyHistoryPanel() {
+  const [rows, setRows] = useState<LeaveRequestResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+
+  const fetch = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setRows(await leaveRealService.myRequests()); }
+    catch (err) { setError((err as { message?: string }).message || 'Failed to load history'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void fetch(); }, [fetch]);
+
+  const cancel = async (r: LeaveRequestResponse) => {
+    if (!window.confirm('Cancel this leave request?')) return;
+    setCancelling(r.id);
+    try {
+      await leaveRealService.cancel(r.id);
+      toast.success('Cancelled');
+      void fetch();
+    } catch (err) {
+      toast.error((err as { message?: string }).message || 'Cancel failed');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+      <TableContainer>
+        <Table>
+          <TableHead sx={{ background: 'rgba(168,85,247,0.06)' }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Dates</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Days</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600 }}>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow><TableCell colSpan={6} sx={{ p: 0 }}>
+                <Box sx={{ p: 2 }}><TableSkeleton rows={3} cols={6} /></Box>
+              </TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={6} sx={{ py: 0 }}>
+                <ErrorState message={error} onRetry={() => void fetch()} />
+              </TableCell></TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow><TableCell colSpan={6} sx={{ py: 0 }}>
+                <EmptyState icon={CalendarOff} title="No leave requests yet"
+                  description="Use the Apply tab to submit your first leave request." />
+              </TableCell></TableRow>
+            ) : (
+              rows.map((r) => (
+                <TableRow key={r.id} hover>
+                  <TableCell>{r.leaveTypeName || '—'}</TableCell>
+                  <TableCell>
+                    {new Date(r.startDate).toLocaleDateString()}
+                    {' → '}
+                    {new Date(r.endDate).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{r.totalDays}</TableCell>
+                  <TableCell>
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden', maxWidth: 220,
+                    }}>{r.reason}</Typography>
+                  </TableCell>
+                  <TableCell>{statusChip(r.status)}</TableCell>
+                  <TableCell align="right">
+                    {r.status === 'PENDING' && (
+                      <Button size="small" color="warning" disabled={cancelling === r.id}
+                        onClick={() => void cancel(r)}>
+                        {cancelling === r.id ? '…' : 'Cancel'}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 }
 

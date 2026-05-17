@@ -14,7 +14,8 @@ import {
   TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField,
   Tooltip, Typography,
 } from '@mui/material';
-import { Add, Delete, Edit, GroupOutlined, Search } from '@mui/icons-material';
+import { Add, Delete, Edit, GroupOutlined, Search, Visibility } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 import { Users as UsersIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { parentService } from '../../../services/parent.service';
@@ -276,6 +277,11 @@ export default function ParentsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
+                        <Tooltip title="View details">
+                          <IconButton size="small" component={RouterLink} to={`/dashboard/parents/${p.parentId}`}>
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         <Tooltip title="View children">
                           <span><IconButton size="small" disabled={!p.parentUserId} onClick={() => void openChildren(p)}>
                             <GroupOutlined fontSize="small" /></IconButton></span>

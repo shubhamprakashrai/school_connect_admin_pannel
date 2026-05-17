@@ -90,6 +90,7 @@ const ReportsPage        = lazy(() => import('./SuperAdminPages/SuperAdminDashbo
 const AssignmentDetailPage = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Assignments/AssignmentDetailPage'));
 const FeeReceiptPage     = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Fees/FeeReceiptPage'));
 const PendingFeesPage    = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Fees/PendingFeesPage'));
+const ParentDetailPage   = lazy(() => import('./SuperAdminPages/SuperAdminDashboard/Parents/ParentDetailPage'));
 
 // Parent portal
 const ParentLayout       = lazy(() => import('./parent/ParentLayout'));
@@ -319,6 +320,7 @@ const DashboardLayout = ({ onLogout }: { onLogout: () => void }) => {
                 </Route>
                 <Route path="users" element={<UsersPage />} />
                 <Route path="parents" element={<ParentsPage />} />
+                <Route path="parents/:parentId" element={<ParentDetailPage />} />
                 <Route path="admins" element={<AdminsPage />} />
                 <Route path="class-teachers" element={<ClassTeachersPage />} />
                 <Route path="teacher-assignments" element={<TeacherAssignmentsPage />} />
