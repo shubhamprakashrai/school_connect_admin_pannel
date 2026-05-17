@@ -52,6 +52,19 @@ export const studentAttendanceService = {
   ): Promise<AttendanceSummaryResponse> {
     return apiService.get(STUDENT_ATTENDANCE_ENDPOINTS.studentSummary(studentId), { params });
   },
+  /**
+   * Quick attendance percentage for a student over a date range. Mobile
+   * exposes `/attendance/student/{id}/percentage` as a shortcut; on our
+   * backend the same number lives inside the full summary response. Pull
+   * that and return just the percentage so callers don't have to know.
+   */
+  async studentPercentage(
+    studentId: string,
+    params: { startDate?: string; endDate?: string } = {},
+  ): Promise<number> {
+    const s = await studentAttendanceService.studentSummary(studentId, params);
+    return s.attendancePercentage ?? 0;
+  },
   /** PUT /student/attendance/{id} */
   update(id: string, payload: Partial<StudentAttendanceRequest>): Promise<StudentAttendanceResponse> {
     return apiService.put(STUDENT_ATTENDANCE_ENDPOINTS.byId(id), payload);

@@ -45,6 +45,33 @@ export const parentService = {
   studentsByParentUser(parentUserUuid: string): Promise<StudentResponse[]> {
     return apiService.getList(PARENT_ENDPOINTS.studentsByParentUser(parentUserUuid));
   },
+  /**
+   * GET /parents/student/{studentId} — list every parent attached to a
+   * student. Useful for the student-detail screen and emergency contact lookup.
+   */
+  byStudent(studentId: string): Promise<ParentResponse[]> {
+    return apiService.getList(PARENT_ENDPOINTS.byStudent(studentId));
+  },
+  /**
+   * POST /parents/{parentId}/students/{studentId} — attach an existing
+   * parent record to a student. Backend tracks the relationship in a join
+   * table, so this is idempotent on the (parent, student) pair.
+   */
+  linkStudent(parentId: string, studentId: string): Promise<ParentResponse> {
+    return apiService.post(PARENT_ENDPOINTS.linkStudent(parentId, studentId), {});
+  },
+  /** DELETE /parents/{parentId}/students/{studentId} — break the link. */
+  unlinkStudent(parentId: string, studentId: string): Promise<void> {
+    return apiService.delete(PARENT_ENDPOINTS.linkStudent(parentId, studentId));
+  },
+  /**
+   * PATCH /parents/{parentId}/status — toggle status (ACTIVE / INACTIVE /
+   * SUSPENDED). Backend accepts the new status as a query param matching
+   * the student-status pattern.
+   */
+  setStatus(parentId: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'): Promise<ParentResponse> {
+    return apiService.patch(PARENT_ENDPOINTS.status(parentId), undefined, { params: { status } });
+  },
 };
 
 export const parentPortalService = {

@@ -171,6 +171,8 @@ export const STUDENT_ENDPOINTS = {
   byClass: (classId: string | number) => `/students/class/${classId}`,
   bySection: (sectionId: string | number) => `/students/section/${sectionId}`,
   SEARCH: '/students/search',
+  /** GET — server-generated CSV with optional filter query string. */
+  EXPORT: '/students/export',
 } as const;
 
 /** /students/bulk/* — BulkStudentController */
@@ -184,6 +186,9 @@ export const BULK_STUDENT_ENDPOINTS = {
 export const TEACHER_ENDPOINTS = {
   ROOT: '/teachers',
   byId: (teacherId: string | number) => `/teachers/${teacherId}`,
+  /** Mobile-parity lookup — used when only the employee id is on hand
+   *  (e.g. legacy roll lists from HR). Falls through to 404 if no match. */
+  byEmployeeId: (employeeId: string) => `/teachers/employee/${employeeId}`,
 } as const;
 
 /** /teachers/bulk-attendance/* — BulkTeacherAttendanceController */
@@ -223,6 +228,13 @@ export const PARENT_ENDPOINTS = {
   /** GET — all students linked to a parent's *user* UUID (not parent record id). */
   studentsByParentUser: (parentUserUuid: string) =>
     `/parents/user/${parentUserUuid}/students`,
+  /** PATCH — toggle parent status (ACTIVE / INACTIVE / SUSPENDED). */
+  status: (parentId: string) => `/parents/${parentId}/status`,
+  /** POST to link / DELETE to unlink a (parent, student) pair. */
+  linkStudent: (parentId: string, studentId: string) =>
+    `/parents/${parentId}/students/${studentId}`,
+  /** GET — every parent of a given student. */
+  byStudent: (studentId: string) => `/parents/student/${studentId}`,
 } as const;
 
 /** /parent-portal/* — ParentPortalController */

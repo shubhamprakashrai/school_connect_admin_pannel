@@ -51,6 +51,16 @@ export const studentService = {
   remove(studentId: string): Promise<void> {
     return apiService.delete(STUDENT_ENDPOINTS.byId(studentId));
   },
+  /**
+   * GET /students/export?[filters] — server-generated CSV download.
+   * Filters mirror the list endpoint's query params (classId, sectionId,
+   * status, gender, search). Use this for large exports — the in-browser
+   * CSV builder under `utils/exporters.ts` is fine for a few hundred rows
+   * but stalls on tens of thousands.
+   */
+  export(params: Record<string, string | undefined> = {}, filename = 'students.csv'): Promise<void> {
+    return apiService.download(STUDENT_ENDPOINTS.EXPORT, filename, { params });
+  },
 };
 
 export const bulkStudentService = {

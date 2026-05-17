@@ -33,6 +33,14 @@ export const teacherService = {
   getById(teacherId: string): Promise<TeacherResponse> {
     return apiService.get(TEACHER_ENDPOINTS.byId(teacherId));
   },
+  /**
+   * GET /teachers/employee/{employeeId} — mobile-parity lookup by HR
+   * employee id (e.g. "T001") instead of the entity UUID. Useful when
+   * importing from legacy spreadsheets / payroll systems.
+   */
+  byEmployeeId(employeeId: string): Promise<TeacherResponse> {
+    return apiService.get(TEACHER_ENDPOINTS.byEmployeeId(employeeId));
+  },
   create(payload: TeacherCreationRequest): Promise<TeacherResponse> {
     return apiService.post(TEACHER_ENDPOINTS.ROOT, payload);
   },
