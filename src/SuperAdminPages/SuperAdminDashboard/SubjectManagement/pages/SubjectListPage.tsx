@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import subjectService from '../../../../services/subject.service';
 import schoolClassService from '../../../../services/schoolClass.service';
 import teacherService from '../../../../services/teacher.service';
+import ErrorState from '../../../../components/ui/ErrorState';
 import { useAuth } from '../../../../contexts/AuthContext';
 import type { SubjectResponse } from '../../../../types/subject';
 import type { Page } from '../../../../types/tenant';
@@ -33,6 +34,7 @@ export default function SubjectListPage() {
   const canManageSubjects = hasRole('ADMIN', 'SUPER_ADMIN', 'SUPERADMIN');
   const [data, setData] = useState<Page<SubjectResponse> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search);
   const [page, setPage] = useState(0);
@@ -83,11 +85,16 @@ export default function SubjectListPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await subjectService.paginated({ page, size: rowsPerPage, search: debouncedSearch || undefined });
       setData(res);
     } catch (err) {
-      toast.error((err as { message?: string }).message || 'Failed to load subjects');
+      // Keep the error visible inline so users see a retry button instead of
+      // a silently empty table; the toast still fires for discoverability.
+      const msg = (err as { message?: string }).message || 'Failed to load subjects';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -161,6 +168,10 @@ export default function SubjectListPage() {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}><CircularProgress size={24} /></TableCell></TableRow>
+              ) : error ? (
+                <TableRow><TableCell colSpan={6} sx={{ py: 0 }}>
+                  <ErrorState message={error} onRetry={() => void fetchData()} />
+                </TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <AutoStories sx={{ fontSize: 48, color: 'text.disabled' }} />

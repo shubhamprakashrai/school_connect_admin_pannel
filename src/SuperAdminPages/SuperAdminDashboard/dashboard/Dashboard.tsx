@@ -78,6 +78,14 @@ function buildTrend() {
   });
 }
 
+/** Local YYYY-MM-DD — see comment on the usage below. */
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function Dashboard() {
   const { user } = useAuth();
   const { t } = useT();
@@ -98,7 +106,9 @@ export function Dashboard() {
       studentService.statistics(),
       teacherService.list({ page: 0, size: 1 }),
       schoolClassService.list(),
-      calendarEventService.byRange(today.toISOString().slice(0, 10), in30.toISOString().slice(0, 10)),
+      // Local YYYY-MM-DD — toISOString() converts to UTC and shifts dates
+      // by ±1 day for non-UTC timezones (IST users hit this near midnight).
+      calendarEventService.byRange(ymd(today), ymd(in30)),
     ])
       .then(([sStats, tList, cList, events]) => {
         if (sStats.status === 'fulfilled') setStats(sStats.value);
