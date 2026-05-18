@@ -38,7 +38,11 @@ export default function SubjectListPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // NOTE: backend's /subjects/paginated currently 500s for size≥6 (one row
+  // in the tenant fails to serialize). Default to 5 here so the page loads;
+  // user can still bump up via the page-size selector — fetch falls back to
+  // 5 below if the larger request fails.
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   // Assign dialog state
   const [assignSubject, setAssignSubject] = useState<SubjectResponse | null>(null);
@@ -90,8 +94,17 @@ export default function SubjectListPage() {
       const res = await subjectService.paginated({ page, size: rowsPerPage, search: debouncedSearch || undefined });
       setData(res);
     } catch (err) {
-      // Keep the error visible inline so users see a retry button instead of
-      // a silently empty table; the toast still fires for discoverability.
+      // Backend currently 500s for size≥6 — auto-retry with size=5 so the
+      // page still renders. The smaller page may miss some rows; that's
+      // visible to the user via the pagination footer + a toast nudge.
+      if (rowsPerPage > 5) {
+        try {
+          const res = await subjectService.paginated({ page, size: 5, search: debouncedSearch || undefined });
+          setData(res);
+          toast.info('Showing 5 per page — backend cannot return more right now');
+          return;
+        } catch { /* fall through to error state */ }
+      }
       const msg = (err as { message?: string }).message || 'Failed to load subjects';
       setError(msg);
       toast.error(msg);
@@ -230,7 +243,7 @@ export default function SubjectListPage() {
         <TablePagination component="div" count={total} page={page}
           onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={[10, 25, 50]} />
+          rowsPerPageOptions={[5, 10, 25, 50]} />
       </Paper>
 
       {/* Assign dialog */}
