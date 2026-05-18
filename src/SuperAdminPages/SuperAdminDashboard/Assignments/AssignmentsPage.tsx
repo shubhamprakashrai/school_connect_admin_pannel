@@ -77,7 +77,7 @@ export default function AssignmentsPage() {
   useEffect(() => {
     schoolClassService.list().then(setClasses).catch(() => setClasses([]));
     subjectService.list().then(setSubjects).catch(() => setSubjects([]));
-    teacherService.list().then(setTeachers).catch(() => setTeachers([]));
+    teacherService.listAll().then(setTeachers).catch(() => setTeachers([]));
   }, []);
 
   const fetchPage = useCallback(async () => {

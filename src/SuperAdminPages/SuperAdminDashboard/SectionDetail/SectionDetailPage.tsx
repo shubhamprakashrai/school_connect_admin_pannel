@@ -78,7 +78,7 @@ export default function SectionDetailPage() {
       setAllSlots(s);
     }).catch(() => setAllSlots([]));
     subjectService.list().then(setAllSubjects).catch(() => setAllSubjects([]));
-    teacherService.list().then(setAllTeachers).catch(() => setAllTeachers([]));
+    teacherService.listAll().then(setAllTeachers).catch(() => setAllTeachers([]));
   }, []);
 
   const openConfig = () => {

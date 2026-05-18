@@ -30,6 +30,16 @@ export const teacherService = {
   list(params: ListTeachersParams = {}): Promise<Page<TeacherResponse>> {
     return apiService.get(TEACHER_ENDPOINTS.ROOT, { params });
   },
+  /**
+   * Flat-array convenience — fetches up to `size` teachers and unwraps
+   * the Page<T> envelope. Use this in dropdowns / autocompletes where
+   * a flat array is expected — avoids the easy mistake of calling
+   * `.list()` (which returns Page<T>) and then `.map()` on it.
+   */
+  async listAll(size = 200): Promise<TeacherResponse[]> {
+    const page = await teacherService.list({ page: 0, size });
+    return page.content || [];
+  },
   getById(teacherId: string): Promise<TeacherResponse> {
     return apiService.get(TEACHER_ENDPOINTS.byId(teacherId));
   },

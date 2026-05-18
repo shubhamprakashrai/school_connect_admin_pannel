@@ -69,7 +69,7 @@ export default function TimetablePage() {
         setSlots(s);
       }),
       subjectService.list().then(setSubjects),
-      teacherService.list().then(setTeachers),
+      teacherService.listAll().then(setTeachers),
     ]);
   }, []);
 
