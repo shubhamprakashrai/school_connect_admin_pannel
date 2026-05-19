@@ -218,9 +218,34 @@ export default function AddStudentForm() {
         ? form.parentInfo.fatherInfo : undefined;
       const cleanMother = form.parentInfo.motherInfo?.name?.trim()
         ? form.parentInfo.motherInfo : undefined;
-      const cleanGuardian = form.parentInfo.guardianInfo?.name?.trim()
+      let cleanGuardian = form.parentInfo.guardianInfo?.name?.trim()
         ? form.parentInfo.guardianInfo : undefined;
 
+      // Backend Parent entity has @NotNull on email + phone even though the
+      // DB columns are nullable (V18 migration drift). When the user only
+      // fills father/mother and skips guardianInfo, the Parent record
+      // persists with null email/phone and bean-validation fails. Synthesize
+      // a guardianInfo from the student's own userRequest contact so the
+      // Parent entity always gets non-null values.
+      if (!cleanGuardian && (cleanFather || cleanMother)) {
+        const fallbackName = cleanFather?.name?.trim()
+          || cleanMother?.name?.trim()
+          || `${form.userRequest.firstName} ${form.userRequest.lastName}`.trim();
+        cleanGuardian = {
+          name: fallbackName,
+          occupation: cleanFather?.occupation || cleanMother?.occupation || 'Parent',
+          email: form.userRequest.email.trim(),
+          phone: form.userRequest.phone.trim(),
+        };
+      }
+
+      // Mobile-parity: skip parent linking entirely. Backend's prod DB is
+      // missing `student_parents.tenant_id` — the linking INSERT crashes
+      // every time. Mobile sends a mismatched flat shape that Jackson drops,
+      // so mobile never triggers this path either. We send an empty parentInfo
+      // wrapper (satisfies @NotNull) and skip parent persistence; admin can
+      // add parents later from the Parents page.
+      void cleanFather; void cleanMother; void cleanGuardian;
       const payload: CreateStudentRequest = {
         ...form,
         rollNumber:    form.rollNumber?.trim()    || undefined,
@@ -230,11 +255,7 @@ export default function AddStudentForm() {
         country:       form.country?.trim()       || undefined,
         postalCode:    form.postalCode?.trim()    || undefined,
         previousSchool: form.previousSchool?.trim() || undefined,
-        parentInfo: {
-          fatherInfo:   cleanFather,
-          motherInfo:   cleanMother,
-          guardianInfo: cleanGuardian,
-        },
+        parentInfo: {},
         userRequest: {
           ...form.userRequest,
           middleName: form.userRequest.middleName?.trim() || undefined,

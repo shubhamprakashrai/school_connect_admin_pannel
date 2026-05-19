@@ -16,6 +16,7 @@ import schoolClassService from '../../../../services/schoolClass.service';
 import teacherService from '../../../../services/teacher.service';
 import ErrorState from '../../../../components/ui/ErrorState';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { isServerError } from '../../../../utils/apiErrors';
 import type { SubjectResponse } from '../../../../types/subject';
 import type { Page } from '../../../../types/tenant';
 import type { SchoolClassResponse } from '../../../../types/schoolClass';
@@ -105,9 +106,13 @@ export default function SubjectListPage() {
           return;
         } catch { /* fall through to error state */ }
       }
-      const msg = (err as { message?: string }).message || 'Failed to load subjects';
-      setError(msg);
-      toast.error(msg);
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        const msg = (err as { message?: string }).message || 'Failed to load subjects';
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

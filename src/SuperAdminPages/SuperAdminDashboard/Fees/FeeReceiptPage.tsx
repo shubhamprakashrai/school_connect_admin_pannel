@@ -20,6 +20,7 @@ import feeRealService from '../../../services/feeReal.service';
 import tenantService from '../../../services/tenant.service';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
+import { isServerError } from '../../../utils/apiErrors';
 import type { FeePaymentResponse } from '../../../types/feeReal';
 import type { TenantResponse } from '../../../types/tenant';
 
@@ -41,7 +42,12 @@ export default function FeeReceiptPage() {
       setPayment(p);
       setTenant(t);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load receipt');
+      if (isServerError(err)) {
+        setPayment(null);
+        setTenant(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load receipt');
+      }
     } finally {
       setLoading(false);
     }

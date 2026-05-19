@@ -23,6 +23,7 @@ import assignmentService from '../../../services/assignment.service';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   AssignmentResponse, AssignmentStatistics, AssignmentSubmissionResponse, SubmissionStatus,
 } from '../../../types/assignment';
@@ -61,7 +62,13 @@ export default function AssignmentDetailPage() {
       setSubmissions(subs);
       setStats(st);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load assignment');
+      if (isServerError(err)) {
+        setAssignment(null);
+        setSubmissions([]);
+        setStats(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load assignment');
+      }
     } finally {
       setLoading(false);
     }

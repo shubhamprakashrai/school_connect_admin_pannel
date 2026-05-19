@@ -24,6 +24,7 @@ import teacherService from '../../../services/teacher.service';
 import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   SectionConfigRequest, SectionDetailResponse,
 } from '../../../types/sectionDetail';
@@ -63,7 +64,11 @@ export default function SectionDetailPage() {
       const d = await sectionDetailService.detail(sectionId);
       setDetail(d);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load section');
+      if (isServerError(err)) {
+        setDetail(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load section');
+      }
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import AdminResetPasswordButton from '../../../components/ui/AdminResetPasswordButton';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
+import { isServerError } from '../../../utils/apiErrors';
 import type { ParentResponse } from '../../../types/parent';
 import type { StudentResponse } from '../../../types/student';
 
@@ -50,7 +51,12 @@ export default function ParentDetailPage() {
           .catch(() => setChildren([]));
       }
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load parent');
+      if (isServerError(err)) {
+        setParent(null);
+        setChildren([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load parent');
+      }
     } finally {
       setLoading(false);
     }

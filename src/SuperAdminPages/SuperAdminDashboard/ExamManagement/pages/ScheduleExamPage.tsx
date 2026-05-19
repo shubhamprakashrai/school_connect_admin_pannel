@@ -22,6 +22,7 @@ import { toast } from 'react-toastify';
 import examService from '../../../../services/exam.service';
 import EmptyState from '../../../../components/ui/EmptyState';
 import ErrorState from '../../../../components/ui/ErrorState';
+import { isServerError } from '../../../../utils/apiErrors';
 import type { ExamResponse, StudentMarkEntry } from '../../../../types/exam';
 
 export const ScheduleExamPage = () => {
@@ -46,7 +47,12 @@ export const ScheduleExamPage = () => {
       setExam(e);
       setEntries(res.entries || []);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load exam');
+      if (isServerError(err)) {
+        setExam(null);
+        setEntries([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load exam');
+      }
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,7 @@ import schoolClassService, { sectionService } from '../../../services/schoolClas
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { StudentResponse } from '../../../types/student';
 import type { SchoolClassResponse, SectionResponse } from '../../../types/schoolClass';
 import type { Page } from '../../../types/tenant';
@@ -92,9 +93,13 @@ export default function StudentList() {
       });
       setData(response);
     } catch (err) {
-      const msg = (err as { message?: string }).message || 'Failed to load students';
-      setError(msg);
-      toast.error(msg);
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        const msg = (err as { message?: string }).message || 'Failed to load students';
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

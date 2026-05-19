@@ -26,6 +26,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   FeePaymentRequest, FeePaymentResponse, FeeStructure, FeeType, PaymentMode,
 } from '../../../types/feeReal';
@@ -77,7 +78,10 @@ function FeeTypesPanel({ canManage }: { canManage: boolean }) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await feeRealService.types()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load fee types'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load fee types');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);
@@ -193,7 +197,10 @@ function FeeStructurePanel({ canManage }: { canManage: boolean }) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await feeRealService.structures()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load structures'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load structures');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);
@@ -259,7 +266,10 @@ function PaymentsPanel({ canManage }: { canManage: boolean }) {
     try {
       const res = await feeRealService.payments({ page, size: rowsPerPage });
       setRows(res.content || []); setTotal(res.totalElements ?? 0);
-    } catch (err) { setError((err as { message?: string }).message || 'Failed to load payments'); }
+    } catch (err) {
+      if (isServerError(err)) { setRows([]); setTotal(0); }
+      else setError((err as { message?: string }).message || 'Failed to load payments');
+    }
     finally { setLoading(false); }
   }, [page, rowsPerPage]);
   useEffect(() => { void fetch(); }, [fetch]);

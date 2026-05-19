@@ -21,6 +21,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { TimeSlotRequest, TimeSlotResponse } from '../../../types/timeSlot';
 
 const empty: TimeSlotRequest = { startTime: '09:00', endTime: '09:45', label: '' };
@@ -58,7 +59,11 @@ export default function TimeSlotsPage() {
       list.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
       setRows(list);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load time slots');
+      if (isServerError(err)) {
+        setRows([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load time slots');
+      }
     } finally {
       setLoading(false);
     }

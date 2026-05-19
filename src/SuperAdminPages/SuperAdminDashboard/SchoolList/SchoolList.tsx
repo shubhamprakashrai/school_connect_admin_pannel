@@ -48,6 +48,7 @@ import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
 import { dispatchNotification } from '../../../components/NotificationCenter';
 import usePersistedState from '../../../utils/usePersistedState';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   Page,
   SubscriptionPlan,
@@ -125,9 +126,13 @@ export default function SchoolList() {
       });
       setData(response);
     } catch (err) {
-      const message = (err as { message?: string }).message || 'Failed to load schools';
-      setError(message);
-      toast.error(message);
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        const message = (err as { message?: string }).message || 'Failed to load schools';
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }

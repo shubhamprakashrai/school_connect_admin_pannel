@@ -23,6 +23,7 @@ import { useT } from '../../../contexts/I18nContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { ParentRequest, ParentSearchResult } from '../../../types/parent';
 import type { StudentResponse } from '../../../types/student';
 
@@ -121,9 +122,14 @@ export default function ParentsPage() {
         setRows(slim);
         setTotal(filtered.length);
       } catch (listErr) {
-        setError((listErr as { message?: string }).message
-          || (searchErr as { message?: string }).message
-          || 'Failed to load parents');
+        if (isServerError(listErr) || isServerError(searchErr)) {
+          setRows([]);
+          setTotal(0);
+        } else {
+          setError((listErr as { message?: string }).message
+            || (searchErr as { message?: string }).message
+            || 'Failed to load parents');
+        }
       }
     } finally {
       setLoading(false);

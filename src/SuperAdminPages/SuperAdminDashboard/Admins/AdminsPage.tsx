@@ -16,6 +16,7 @@ import { adminService } from '../../../services/admin.service';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { AdminRequest, AdminResponse, AdminUpdateRequest } from '../../../types/admin';
 
 const empty: AdminRequest = {
@@ -51,7 +52,11 @@ export default function AdminsPage() {
       });
       setData(res);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load admins');
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load admins');
+      }
     } finally {
       setLoading(false);
     }

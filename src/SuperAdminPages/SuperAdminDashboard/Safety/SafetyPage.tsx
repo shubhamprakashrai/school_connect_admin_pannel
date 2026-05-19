@@ -19,6 +19,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   AlertSeverity, IncidentType, SafetyAlert, SafetyIncidentRequest,
 } from '../../../types/safety';
@@ -151,7 +152,12 @@ function AlertsPanel({ canManage }: { canManage: boolean }) {
       setActive(act);
       setHistory(all.filter((a) => !act.find((x) => x.id === a.id)));
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load alerts');
+      // Mobile-parity: SafetyController missing → empty state instead of error.
+      if (isServerError(err)) {
+        setActive([]); setHistory([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load alerts');
+      }
     } finally {
       setLoading(false);
     }

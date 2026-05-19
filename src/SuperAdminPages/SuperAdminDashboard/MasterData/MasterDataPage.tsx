@@ -26,6 +26,7 @@ import { useT } from '../../../contexts/I18nContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   CreateMasterDataRequest, MasterDataResponse, UpdateMasterDataRequest,
 } from '../../../types/masterData';
@@ -64,7 +65,11 @@ export default function MasterDataPage() {
       const list = await masterDataService.all();
       setAllEntries(list || []);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load master data');
+      if (isServerError(err)) {
+        setAllEntries([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load master data');
+      }
     } finally {
       setLoading(false);
     }

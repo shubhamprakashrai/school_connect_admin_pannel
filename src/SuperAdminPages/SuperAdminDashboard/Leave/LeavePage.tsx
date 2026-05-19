@@ -25,6 +25,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { LeaveRequestResponse, LeaveType } from '../../../types/leaveReal';
 
 export default function LeavePage() {
@@ -156,7 +157,10 @@ function MyHistoryPanel() {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await leaveRealService.myRequests()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load history'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load history');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);
@@ -264,7 +268,10 @@ function PendingPanel({ canManage }: { canManage: boolean }) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await leaveRealService.pendingRequests()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load requests'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load requests');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);
@@ -407,7 +414,10 @@ function TypesPanel({ canManage }: { canManage: boolean }) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await leaveRealService.types()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load types'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load types');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);

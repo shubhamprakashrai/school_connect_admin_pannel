@@ -21,6 +21,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   AppNotification, NotificationType, SendNotificationRequest,
 } from '../../../types/notificationInbox';
@@ -77,7 +78,10 @@ function InboxPanel() {
       const res = await notificationInboxService.inbox({ page, size: rowsPerPage });
       setRows(res.content || []); setTotal(res.totalElements ?? 0);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load inbox');
+      // Mobile-parity: backend NotificationInboxController not deployed →
+      // swallow 5xx and render the empty state.
+      if (isServerError(err)) { setRows([]); setTotal(0); }
+      else setError((err as { message?: string }).message || 'Failed to load inbox');
     } finally {
       setLoading(false);
     }

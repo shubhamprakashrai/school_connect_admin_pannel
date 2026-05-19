@@ -22,6 +22,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import EmptyState from '../../../../components/ui/EmptyState';
 import ErrorState from '../../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../../utils/apiErrors';
 import type { ExamRequest, ExamResponse, ExamStatus, ExamType } from '../../../../types/exam';
 import type { SchoolClassResponse } from '../../../../types/schoolClass';
 import type { SubjectResponse } from '../../../../types/subject';
@@ -98,7 +99,11 @@ function ExamsPanel({ canManage }: { canManage: boolean }) {
       const res = await examService.list({ page, size: rowsPerPage });
       setRows(res.content || []); setTotal(res.totalElements ?? 0);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load exams');
+      // Mobile-parity: backend ExamController not deployed → swallow 5xx
+      // and render empty state instead of an error banner. Real errors
+      // (4xx) still bubble up to the user.
+      if (isServerError(err)) { setRows([]); setTotal(0); }
+      else setError((err as { message?: string }).message || 'Failed to load exams');
     } finally { setLoading(false); }
   }, [page, rowsPerPage]);
   useEffect(() => { void fetch(); }, [fetch]);
@@ -315,7 +320,10 @@ function TypesPanel({ canManage }: { canManage: boolean }) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try { setRows(await examService.types()); }
-    catch (err) { setError((err as { message?: string }).message || 'Failed to load types'); }
+    catch (err) {
+      if (isServerError(err)) setRows([]);
+      else setError((err as { message?: string }).message || 'Failed to load types');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void fetch(); }, [fetch]);

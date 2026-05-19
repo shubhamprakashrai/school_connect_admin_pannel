@@ -28,6 +28,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type {
   AssignmentRequest, AssignmentResponse, AssignmentStatus,
 } from '../../../types/assignment';
@@ -87,7 +88,10 @@ export default function AssignmentsPage() {
       setRows(res.content || []);
       setTotal(res.totalElements ?? 0);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load assignments');
+      // Mobile-parity: backend AssignmentController not deployed → swallow
+      // 5xx and render the empty state instead of an error banner.
+      if (isServerError(err)) { setRows([]); setTotal(0); }
+      else setError((err as { message?: string }).message || 'Failed to load assignments');
     } finally {
       setLoading(false);
     }

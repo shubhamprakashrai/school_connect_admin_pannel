@@ -16,6 +16,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { SchoolClassResponse } from '../../../types/schoolClass';
 import type { Page } from '../../../types/tenant';
 
@@ -49,7 +50,11 @@ export default function ClassList() {
       });
       setData(res);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load classes');
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load classes');
+      }
     } finally {
       setLoading(false);
     }

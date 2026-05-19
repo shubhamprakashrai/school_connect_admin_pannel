@@ -20,6 +20,7 @@ import { userService } from '../../../services/admin.service';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { UserSummary } from '../../../types/admin';
 import type { Page } from '../../../types/tenant';
 
@@ -76,7 +77,11 @@ export default function UsersPage() {
         setData(list as Page<UserSummary>);
       }
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load users');
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load users');
+      }
     } finally {
       setLoading(false);
     }

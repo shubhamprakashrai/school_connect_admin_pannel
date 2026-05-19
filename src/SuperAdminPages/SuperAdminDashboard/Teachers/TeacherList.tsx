@@ -17,6 +17,7 @@ import usePersistedState from '../../../utils/usePersistedState';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { TeacherResponse } from '../../../types/teacher';
 import type { Page } from '../../../types/tenant';
 
@@ -63,8 +64,12 @@ export default function TeacherList() {
       });
       setData(res);
     } catch (err) {
-      const m = (err as { message?: string }).message || 'Failed to load teachers';
-      setError(m); toast.error(m);
+      if (isServerError(err)) {
+        setData(null);
+      } else {
+        const m = (err as { message?: string }).message || 'Failed to load teachers';
+        setError(m); toast.error(m);
+      }
     } finally {
       setLoading(false);
     }

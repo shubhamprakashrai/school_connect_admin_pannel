@@ -20,6 +20,7 @@ import teacherService, { classTeacherService } from '../../../services/teacher.s
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { SchoolClassResponse, SectionResponse } from '../../../types/schoolClass';
 import type { ClassTeacherResponse, TeacherResponse } from '../../../types/teacher';
 
@@ -60,7 +61,12 @@ export default function ClassTeachersPage() {
       setClasses(cls || []);
       setTeachers(teachersPage?.content || []);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load assignments');
+      if (isServerError(err)) {
+        setAssignments([]);
+        setTotal(0);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load assignments');
+      }
     } finally {
       setLoading(false);
     }

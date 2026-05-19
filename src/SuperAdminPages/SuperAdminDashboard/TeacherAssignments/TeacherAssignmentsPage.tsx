@@ -24,6 +24,7 @@ import subjectService from '../../../services/subject.service';
 import EmptyState from '../../../components/ui/EmptyState';
 import ErrorState from '../../../components/ui/ErrorState';
 import { TableSkeleton } from '../../../components/ui/LoadingSkeleton';
+import { isServerError } from '../../../utils/apiErrors';
 import type { TeacherAssignmentResponse, TeacherResponse } from '../../../types/teacher';
 import type { SchoolClassResponse, SectionResponse } from '../../../types/schoolClass';
 import type { SubjectResponse } from '../../../types/subject';
@@ -98,7 +99,11 @@ export default function TeacherAssignmentsPage() {
         : await teacherAssignmentService.bySection(sectionId);
       setAssignments(list || []);
     } catch (err) {
-      setError((err as { message?: string }).message || 'Failed to load assignments');
+      if (isServerError(err)) {
+        setAssignments([]);
+      } else {
+        setError((err as { message?: string }).message || 'Failed to load assignments');
+      }
     } finally {
       setLoading(false);
     }
